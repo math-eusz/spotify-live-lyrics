@@ -1,0 +1,34 @@
+name: Publish historical releases
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - releases/manifest.json
+      - .github/workflows/publish-history.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-historical-releases
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out complete release history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate release automation
+        run: python -m unittest discover -s tests -p test_releases.py -v
+      - name: Publish numbered releases and original assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: python releases/publish.py --publish
