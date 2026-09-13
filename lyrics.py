@@ -3,6 +3,7 @@ import re
 import time
 
 FPS = 180
+LINES_PER_BLOCK = 4
 
 # Quantas vezes por segundo consultamos de verdade o Spotify.
 # O resto é interpolado localmente.
@@ -94,6 +95,24 @@ def get_lyrics(artist, title):
         lines.append((timestamp, text))
 
     return lines
+
+
+def get_block_text(lyrics, current_index, visible):
+    # Linhas vazias marcam pausas, mas não ocupam lugar no bloco.
+    sung_indices = [
+        i for i in range(current_index + 1)
+        if lyrics[i][1].strip()
+    ]
+    if not sung_indices:
+        return "..."
+
+    block_start = ((len(sung_indices) - 1) // LINES_PER_BLOCK) * LINES_PER_BLOCK
+    block_indices = sung_indices[block_start:]
+    rows = [
+        visible + "█" if i == current_index else lyrics[i][1]
+        for i in block_indices
+    ]
+    return "\n".join(rows)
 
 
 def draw(artist, title, text):
@@ -294,7 +313,7 @@ while True:
     draw(
         artist,
         title,
-        visible + "█"
+        get_block_text(lyrics, current_index, visible)
     )
 
     # -------------------------
