@@ -224,4 +224,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if "--legacy" in sys.argv:
+        main()
+    else:
+        from spicy_bridge import main as bridge_main
+        bridge_main()
