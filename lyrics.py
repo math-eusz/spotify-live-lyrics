@@ -1,328 +1,227 @@
-import subprocess
+import bisect
+import math
+import queue
 import re
+import shutil
+import statistics
+import subprocess
+import threading
 import time
 
 FPS = 180
+PLAYER = "spotify"
 LINES_PER_BLOCK = 4
+PAUSE_SECONDS = 2.0
+TYPE_AHEAD = 0.10       # Adianta a digitação em 100 ms, sem adiantar a troca de bloco.
+SYNC_OFFSET = 0.00      # Corrige toda a letra; deixe zero inicialmente.
+TYPE_RATIO = 0.95
+POLL_INTERVAL = 0.10
 
-# Quantas vezes por segundo consultamos de verdade o Spotify.
-# O resto é interpolado localmente.
-POSITION_INTERVAL = 0.10
-STATUS_INTERVAL = 0.20
-METADATA_INTERVAL = 0.50
-
-# Ajuste fino.
-# POSITIVO = letra fica mais adiantada
-# NEGATIVO = letra fica mais atrasada
-SYNC_OFFSET = 0.00
-
-# Faz a digitação terminar um pouco antes da próxima linha.
-# 0.90 = usa 90% do intervalo entre as linhas.
-TYPE_RATIO = 0.90
+STOP = threading.Event()
+STATES = queue.Queue(maxsize=1)
+REQUESTS = queue.Queue(maxsize=1)
+RESULTS = queue.Queue()
 
 
-def cmd(args):
+def command(args, timeout=2):
     try:
         return subprocess.check_output(
-            args,
-            text=True,
-            stderr=subprocess.DEVNULL
+            args, text=True, stderr=subprocess.DEVNULL, timeout=timeout
         ).strip()
-    except:
+    except (OSError, subprocess.SubprocessError):
         return ""
 
 
-def get_song():
-    result = cmd([
-        "playerctl",
-        "-p", "spotify",
-        "metadata",
-        "--format",
-        "{{artist}}\t{{title}}"
-    ])
-
-    if "\t" not in result:
-        return "", ""
-
-    return result.split("\t", 1)
-
-
-def get_real_position():
+def latest(channel, value):
     try:
-        return float(
-            cmd([
-                "playerctl",
-                "-p", "spotify",
-                "position"
-            ])
-        )
-    except:
-        return None
+        channel.get_nowait()
+    except queue.Empty:
+        pass
+    channel.put_nowait(value)
 
 
-def get_status():
-    return cmd([
-        "playerctl",
-        "-p", "spotify",
-        "status"
-    ])
+def player_worker():
+    song = None
+    next_metadata = 0.0
+    while not STOP.is_set():
+        started = time.monotonic()
+        if started >= next_metadata:
+            raw = command(["playerctl", "-p", PLAYER, "metadata", "--format",
+                           "{{artist}}\t{{title}}"])
+            song = tuple(raw.split("\t", 1)) if "\t" in raw else None
+            next_metadata = time.monotonic() + 0.5
+        status = command(["playerctl", "-p", PLAYER, "status"])
+        before = time.monotonic()
+        raw_position = command(["playerctl", "-p", PLAYER, "position"])
+        after = time.monotonic()
+        try:
+            position = float(raw_position)
+            if not math.isfinite(position):
+                raise ValueError
+        except ValueError:
+            latest(STATES, (None, "Stopped", 0.0, after))
+        else:
+            latest(STATES, (song, status, position, (before + after) / 2))
+        STOP.wait(max(0, POLL_INTERVAL - (time.monotonic() - started)))
 
 
-def get_lyrics(artist, title):
-    result = cmd([
-        "syncedlyrics",
-        "--synced-only",
-        f"{artist} - {title}"
-    ])
+def parse_lyrics(raw):
+    entries = []
+    offset_match = re.search(r"\[offset:([+-]?\d+)\]", raw, re.I)
+    offset = int(offset_match.group(1)) / 1000 if offset_match else 0.0
+    pattern = r"\[(\d+):(\d+(?:\.\d+)?)\]"
+    for row in raw.splitlines():
+        if not re.match(pattern, row):
+            continue
+        tags = list(re.finditer(pattern, row))
+        text = row[tags[-1].end():].strip()
+        # Remove controles de terminal vindos da fonte da letra.
+        text = "".join(c for c in text if c.isprintable())
+        for tag in tags:
+            stamp = int(tag[1]) * 60 + float(tag[2]) + offset
+            entries.append((stamp, text))
+    entries = sorted(set(entries))
+    if not entries:
+        return []
+
+    # Estima o ritmo pelas linhas curtas; não é detecção de voz.
+    rates = []
+    for (start, text), (end, _) in zip(entries, entries[1:]):
+        duration = end - start
+        if text and 1 <= duration <= 6:
+            rates.append(len(text) / duration)
+    rate = max(7.0, min(22.0, statistics.median(rates) if rates else 13.0))
 
     lines = []
-
-    for line in result.splitlines():
-        match = re.match(
-            r"\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)",
-            line
-        )
-
-        if not match:
+    for i, (start, text) in enumerate(entries):
+        if not text:
             continue
-
-        minutes = int(match.group(1))
-        seconds = float(match.group(2))
-        text = match.group(3)
-
-        timestamp = minutes * 60 + seconds
-
-        lines.append((timestamp, text))
-
+        next_event = entries[i + 1][0] if i + 1 < len(entries) else None
+        estimated = max(1.0, len(text) / rate)
+        duration = max(0.1, next_event - start) if next_event is not None else estimated
+        typing = duration * TYPE_RATIO
+        if duration - estimated >= PAUSE_SECONDS:
+            typing = estimated
+        weights = []
+        total = 0.0
+        for char in text:
+            total += 0.25 if char.isspace() else 0.45 if char in ",.;:!?—-" else 1.0
+            weights.append(total)
+        lines.append({"start": start, "text": text, "duration": max(0.1, typing),
+                      "end": start + typing, "weights": weights,
+                      "blank": entries[i + 1][0] if i + 1 < len(entries)
+                      and not entries[i + 1][1] else None})
     return lines
 
 
-def get_block_text(lyrics, current_index, visible):
-    # Linhas vazias marcam pausas, mas não ocupam lugar no bloco.
-    sung_indices = [
-        i for i in range(current_index + 1)
-        if lyrics[i][1].strip()
-    ]
-    if not sung_indices:
-        return "..."
+def lyrics_worker():
+    cache = {}
+    while not STOP.is_set():
+        try:
+            song = REQUESTS.get(timeout=0.2)
+        except queue.Empty:
+            continue
+        if song in cache:
+            lines = cache[song]
+        else:
+            raw = command(["syncedlyrics", "--synced-only", " - ".join(song)], 30)
+            lines = parse_lyrics(raw)
+            if lines:
+                if len(cache) >= 64:
+                    cache.pop(next(iter(cache)))
+                cache[song] = lines
+        RESULTS.put((song, lines))
 
-    block_start = ((len(sung_indices) - 1) // LINES_PER_BLOCK) * LINES_PER_BLOCK
-    block_indices = sung_indices[block_start:]
-    rows = [
-        visible + "█" if i == current_index else lyrics[i][1]
-        for i in block_indices
-    ]
+
+def render_block(lines, position):
+    current = bisect.bisect_right([line["start"] for line in lines], position) - 1
+    if current < 0:
+        return "..."
+    first = (current // LINES_PER_BLOCK) * LINES_PER_BLOCK
+    rows = []
+    for i in range(first, current + 1):
+        line = lines[i]
+        if i > first:
+            previous = lines[i - 1]
+            silence_start = previous["blank"] if previous["blank"] is not None else previous["end"]
+            if line["start"] - silence_start >= PAUSE_SECONDS:
+                rows.append("")
+        if i < current:
+            rows.append(line["text"])
+            continue
+        elapsed = max(0.0, position - line["start"] + TYPE_AHEAD)
+        progress = min(1.0, elapsed / line["duration"])
+        count = bisect.bisect_right(line["weights"], progress * line["weights"][-1])
+        count = min(len(line["text"]), max(1, count))
+        cursor = "█" if progress < 1.0 else ""
+        rows.append(line["text"][:count] + cursor)
+        silence_start = line["blank"] if line["blank"] is not None else line["end"]
+        if position - silence_start >= PAUSE_SECONDS:
+            rows.append("")
     return "\n".join(rows)
 
 
-def draw(artist, title, text):
-    print("\033[H\033[J", end="")
-    print(f"♪ {artist} — {title}\n")
-    print(text, end="", flush=True)
-
-
-artist = ""
-title = ""
-
-lyrics = []
-
-last_metadata_check = 0
-last_position_check = 0
-last_status_check = 0
-
-spotify_position = 0.0
-position_sync_time = time.monotonic()
-
-status = "Paused"
-
-frame_time = 1 / FPS
-
-
-while True:
-
-    frame_start = time.monotonic()
-    now = frame_start
-
-    # -------------------------
-    # MÚSICA / METADATA
-    # -------------------------
-
-    if now - last_metadata_check >= METADATA_INTERVAL:
-
-        new_artist, new_title = get_song()
-
-        last_metadata_check = now
-
-        if not new_artist or not new_title:
-            draw("", "", "Spotify não encontrado.")
-            time.sleep(0.5)
-            continue
-
-        if (new_artist, new_title) != (artist, title):
-
-            artist = new_artist
-            title = new_title
-
-            draw(
-                artist,
-                title,
-                "Buscando letra..."
-            )
-
-            lyrics = get_lyrics(
-                artist,
-                title
-            )
-
-            real_pos = get_real_position()
-
-            if real_pos is not None:
-                spotify_position = real_pos
-                position_sync_time = time.monotonic()
-
-    # -------------------------
-    # STATUS
-    # -------------------------
-
-    if now - last_status_check >= STATUS_INTERVAL:
-
-        new_status = get_status()
-
-        if new_status:
-            status = new_status
-
-        last_status_check = now
-
-    # -------------------------
-    # POSIÇÃO REAL DO SPOTIFY
-    # -------------------------
-
-    if now - last_position_check >= POSITION_INTERVAL:
-
-        real_position = get_real_position()
-
-        if real_position is not None:
-
-            spotify_position = real_position
-            position_sync_time = time.monotonic()
-
-        last_position_check = now
-
-    # -------------------------
-    # INTERPOLAÇÃO
-    # -------------------------
-
-    if status == "Playing":
-
-        elapsed = now - position_sync_time
-
-        position = (
-            spotify_position
-            + elapsed
-            + SYNC_OFFSET
-        )
-
-    else:
-
-        position = (
-            spotify_position
-            + SYNC_OFFSET
-        )
-
-    # -------------------------
-    # SEM LETRA
-    # -------------------------
-
-    if not lyrics:
-
-        draw(
-            artist,
-            title,
-            "Letra sincronizada não encontrada."
-        )
-
-        time.sleep(frame_time)
-        continue
-
-    # -------------------------
-    # DESCOBRIR LINHA ATUAL
-    # -------------------------
-
-    current_index = None
-
-    for i, (timestamp, _) in enumerate(lyrics):
-
-        if timestamp <= position:
-            current_index = i
-        else:
-            break
-
-    if current_index is None:
-
-        draw(
-            artist,
-            title,
-            "..."
-        )
-
-        time.sleep(frame_time)
-        continue
-
-    start, text = lyrics[current_index]
-
-    if current_index + 1 < len(lyrics):
-
-        next_start = lyrics[current_index + 1][0]
-
-    else:
-
-        next_start = start + 5
-
-    # -------------------------
-    # DIGITAÇÃO
-    # -------------------------
-
-    line_duration = next_start - start
-
-    typing_duration = max(
-        line_duration * TYPE_RATIO,
-        0.10
-    )
-
-    elapsed_line = position - start
-
-    progress = elapsed_line / typing_duration
-
-    progress = max(
-        0.0,
-        min(progress, 1.0)
-    )
-
-    char_count = int(
-        len(text) * progress
-    )
-
-    if progress > 0:
-        char_count = max(
-            char_count,
-            1
-        )
-
-    visible = text[:char_count]
-
-    draw(
-        artist,
-        title,
-        get_block_text(lyrics, current_index, visible)
-    )
-
-    # -------------------------
-    # 180 FPS
-    # -------------------------
-
-    elapsed_frame = time.monotonic() - frame_start
-
-    sleep_time = frame_time - elapsed_frame
-
-    if sleep_time > 0:
-        time.sleep(sleep_time)
+def main():
+    missing = [name for name in ("playerctl", "syncedlyrics") if not shutil.which(name)]
+    if missing:
+        print("Comando não encontrado: " + ", ".join(missing))
+        return
+    STOP.clear()
+    threading.Thread(target=player_worker, daemon=True).start()
+    threading.Thread(target=lyrics_worker, daemon=True).start()
+    state = (None, "Stopped", 0.0, time.monotonic())
+    song = None
+    lines = []
+    loading = False
+    last_screen = None
+    print("\033[?1049h\033[?25l", end="", flush=True)
+    try:
+        while True:
+            frame_start = time.monotonic()
+            try:
+                state = STATES.get_nowait()
+            except queue.Empty:
+                pass
+            new_song, status, real_position, measured_at = state
+            if new_song != song:
+                song = new_song
+                lines = []
+                loading = bool(song)
+                if song:
+                    latest(REQUESTS, song)
+            while True:
+                try:
+                    result_song, result_lines = RESULTS.get_nowait()
+                except queue.Empty:
+                    break
+                if result_song == song:
+                    lines = result_lines
+                    loading = False
+            now = time.monotonic()
+            # Se as consultas falharem, não deixa o relógio correr indefinidamente.
+            elapsed = min(0.5, max(0.0, now - measured_at)) if status == "Playing" else 0.0
+            position = real_position + elapsed + SYNC_OFFSET
+            if not song:
+                screen = "Spotify não encontrado. Abra o Spotify e toque uma música."
+            else:
+                if loading:
+                    body = "Buscando letra..."
+                elif not lines:
+                    body = "Letra sincronizada não encontrada."
+                else:
+                    body = render_block(lines, position)
+                label = "  [pausado]" if status == "Paused" else ""
+                screen = f"♪ {song[0]} — {song[1]}{label}\n\n{body}"
+            if screen != last_screen:
+                print("\033[H\033[J" + screen, end="", flush=True)
+                last_screen = screen
+            time.sleep(max(0.0, 1 / FPS - (time.monotonic() - frame_start)))
+    except KeyboardInterrupt:
+        pass
+    finally:
+        STOP.set()
+        print("\033[?25h\033[?1049l", end="", flush=True)
+
+
+if __name__ == "__main__":
+    main()
