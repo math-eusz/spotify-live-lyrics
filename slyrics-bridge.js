@@ -53,7 +53,9 @@
         title: item?.name ?? meta.title ?? "",
         artist: meta.artist_name ?? item?.artists?.map(a => a.name).join(", ") ?? "",
         position: player.getProgress() / 1000,
-        playing: player.isPlaying()
+        playing: player.isPlaying(),
+        duration: typeof player.getDuration === "function" && Number.isFinite(player.getDuration())
+          ? Math.max(0, player.getDuration() / 1000) : 0
       };
       const sendLyrics = Date.now() - lastLyricsSend > 2000;
       if (sendLyrics) message.lyrics = lyrics;

@@ -13,9 +13,9 @@ def install(source):
     executable = shutil.which("spicetify")
     if not executable:
         raise RuntimeError("Spicetify não encontrado no PATH. Abra um terminal onde spicetify funciona.")
-    required = ("lyrics.py", "spicy_bridge.py", "slyrics-bridge.js")
+    required = ("lyrics.py", "spicy_bridge.py", "slyrics-bridge.js", "terminal_ui.py")
     payloads = {name: (source / name).read_text(encoding="utf-8") for name in required}
-    for name in ("lyrics.py", "spicy_bridge.py"):
+    for name in ("lyrics.py", "spicy_bridge.py", "terminal_ui.py"):
         compile(payloads[name], name, "exec")
     config_path = Path(subprocess.check_output([executable, "-c"], text=True).strip()).expanduser()
     if not config_path.is_file():
@@ -44,6 +44,11 @@ def install(source):
         if destination.exists():
             shutil.copy2(destination, backup / name)
         destination.write_text(text, encoding="utf-8")
+    ui_config = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "spotify-live-lyrics/ui.ini"
+    ui_config.parent.mkdir(parents=True, exist_ok=True)
+    if not ui_config.exists():
+        ui_config.write_text((source / "ui.ini").read_text(encoding="utf-8"), encoding="utf-8")
+    print("Aparência (edite e salve para aplicar ao vivo):", ui_config)
     fd = os.open(config, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w") as file:
         json.dump({"token": token}, file)

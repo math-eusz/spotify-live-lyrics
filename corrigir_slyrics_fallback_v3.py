@@ -15,6 +15,7 @@ FILES = {'lyrics.py': 'import bisect\n'
               'import subprocess\n'
               'import threading\n'
               'import time\n'
+              'from terminal_ui import TerminalUI\n'
               '\n'
               'FPS = 180\n'
               'PLAYER = "spotify"\n'
@@ -29,6 +30,7 @@ FILES = {'lyrics.py': 'import bisect\n'
               'STATES = queue.Queue(maxsize=1)\n'
               'REQUESTS = queue.Queue(maxsize=1)\n'
               'RESULTS = queue.Queue()\n'
+              'DURATIONS = queue.Queue(maxsize=1)\n'
               '\n'
               '\n'
               'def command(args, timeout=2):\n'
@@ -55,8 +57,16 @@ FILES = {'lyrics.py': 'import bisect\n'
               '        started = time.monotonic()\n'
               '        if started >= next_metadata:\n'
               '            raw = command(["playerctl", "-p", PLAYER, "metadata", "--format",\n'
-              '                           "{{artist}}\\t{{title}}"])\n'
-              '            song = tuple(raw.split("\\t", 1)) if "\\t" in raw else None\n'
+              '                           "{{artist}}\\t{{title}}\\t{{mpris:length}}"])\n'
+              '            fields = raw.split("\\t")\n'
+              '            song = tuple(fields[:2]) if len(fields) >= 2 else None\n'
+              '            try:\n'
+              '                duration = float(fields[2]) / 1_000_000\n'
+              '                if not math.isfinite(duration):\n'
+              '                    duration = 0\n'
+              '            except (ValueError, IndexError):\n'
+              '                duration = 0\n'
+              '            latest(DURATIONS, max(0, duration))\n'
               '            next_metadata = time.monotonic() + 0.5\n'
               '        status = command(["playerctl", "-p", PLAYER, "status"])\n'
               '        before = time.monotonic()\n'
@@ -142,7 +152,7 @@ FILES = {'lyrics.py': 'import bisect\n'
               '\n'
               '\n'
               'def render_block(lines, position, ahead=TYPE_AHEAD, block_size=LINES_PER_BLOCK,\n'
-              '                 pause_seconds=PAUSE_SECONDS):\n'
+              '                 pause_seconds=PAUSE_SECONDS, complete=False):\n'
               '    current = bisect.bisect_right([line["start"] for line in lines], position) - 1\n'
               '    if current < 0:\n'
               '        return "..."\n'
@@ -164,7 +174,7 @@ FILES = {'lyrics.py': 'import bisect\n'
               '        count = bisect.bisect_right(line["weights"], progress * line["weights"][-1])\n'
               '        count = min(len(line["text"]), max(1, count))\n'
               '        cursor = "█" if progress < 1.0 else ""\n'
-              '        rows.append(line["text"][:count] + cursor)\n'
+              '        rows.append(line["text"] if complete else line["text"][:count] + cursor)\n'
               '        silence_start = line["blank"] if line["blank"] is not None else line["end"]\n'
               '        if position - silence_start >= pause_seconds:\n'
               '            rows.append("")\n'
@@ -183,7 +193,8 @@ FILES = {'lyrics.py': 'import bisect\n'
               '    song = None\n'
               '    lines = []\n'
               '    loading = False\n'
-              '    last_screen = None\n'
+              '    ui = TerminalUI()\n'
+              '    duration = 0\n'
               '    print("\\033[?1049h\\033[?25l", end="", flush=True)\n'
               '    try:\n'
               '        while True:\n'
@@ -211,26 +222,29 @@ FILES = {'lyrics.py': 'import bisect\n'
               '            # Se as consultas falharem, não deixa o relógio correr indefinidamente.\n'
               '            elapsed = min(0.5, max(0.0, now - measured_at)) if status == "Playing" else 0.0\n'
               '            position = real_position + elapsed + SYNC_OFFSET\n'
+              '            try:\n'
+              '                duration = DURATIONS.get_nowait()\n'
+              '            except queue.Empty:\n'
+              '                pass\n'
               '            if not song:\n'
-              '                screen = "Spotify não encontrado. Abra o Spotify e toque uma música."\n'
+              '                body = "Abra o Spotify e toque uma música."\n'
+              '                anchor = body\n'
+              '            elif loading:\n'
+              '                body = anchor = "Buscando letra..."\n'
+              '            elif not lines:\n'
+              '                body = anchor = "Letra sincronizada não encontrada."\n'
               '            else:\n'
-              '                if loading:\n'
-              '                    body = "Buscando letra..."\n'
-              '                elif not lines:\n'
-              '                    body = "Letra sincronizada não encontrada."\n'
-              '                else:\n'
-              '                    body = render_block(lines, position)\n'
-              '                label = "  [pausado]" if status == "Paused" else ""\n'
-              '                screen = f"♪ {song[0]} — {song[1]}{label}\\n\\n{body}"\n'
-              '            if screen != last_screen:\n'
-              '                print("\\033[H\\033[J" + screen, end="", flush=True)\n'
-              '                last_screen = screen\n'
+              '                body = render_block(lines, position)\n'
+              '                anchor = render_block(lines, position, complete=True)\n'
+              "            ui.draw(song[0] if song else '', song[1] if song else 'slyrics',\n"
+              "                    body, position, duration, status == 'Playing',\n"
+              "                    'Fonte antiga · digitação contínua', anchor)\n"
               '            time.sleep(max(0.0, 1 / FPS - (time.monotonic() - frame_start)))\n'
               '    except KeyboardInterrupt:\n'
               '        pass\n'
               '    finally:\n'
               '        STOP.set()\n'
-              '        print("\\033[?25h\\033[?1049l", end="", flush=True)\n'
+              '        print("\\033[0m\\033[?25h\\033[?1049l", end="", flush=True)\n'
               '\n'
               '\n'
               'if __name__ == "__main__":\n'
@@ -248,6 +262,7 @@ FILES = {'lyrics.py': 'import bisect\n'
                     'import queue\n'
                     'import shutil\n'
                     'import lyrics as legacy\n'
+                    'from terminal_ui import TerminalUI\n'
                     'from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer\n'
                     'from pathlib import Path\n'
                     'import threading\n'
@@ -342,10 +357,11 @@ FILES = {'lyrics.py': 'import bisect\n'
                     '    return result, "syllable" if kind == "Syllable" else "line"\n'
                     '\n'
                     '\n'
-                    'def render(lines, position, ahead=TYPE_AHEAD):\n'
+                    'def render(lines, position, ahead=TYPE_AHEAD, complete=False):\n'
                     '    if not lines or position < lines[0]["start"]:\n'
                     '        return "♪ Instrumental..."\n'
-                    '    return legacy.render_block(lines, position, ahead, LINES_PER_BLOCK, PAUSE_SECONDS)\n'
+                    '    return legacy.render_block(lines, position, ahead, LINES_PER_BLOCK, PAUSE_SECONDS, '
+                    'complete=complete)\n'
                     '\n'
                     '\n'
                     'class Fallback:\n'
@@ -398,13 +414,14 @@ FILES = {'lyrics.py': 'import bisect\n'
                     '        return [], "Buscando sincronização na fonte antiga..."\n'
                     '\n'
                     '\n'
-                    'def choose_body(data, lines, mode, position, fallback):\n'
+                    'def choose_body(data, lines, mode, position, fallback, complete=False):\n'
                     '    if lines:\n'
                     '        label = "sílabas" if mode == "syllable" else "linhas"\n'
-                    '        return render(lines, position), "Spicy Lyrics · " + label + " · digitação '
-                    'contínua"\n'
+                    '        return render(lines, position, complete=complete), "Spicy Lyrics · " + label + '
+                    '" · digitação contínua"\n'
                     '    old_lines, message = fallback.get(data)\n'
-                    '    body = legacy.render_block(old_lines, position) if old_lines else message\n'
+                    '    body = legacy.render_block(old_lines, position, complete=complete) if old_lines '
+                    'else message\n'
                     '    return body, "Fonte antiga · digitação contínua"\n'
                     '\n'
                     '\n'
@@ -433,7 +450,8 @@ FILES = {'lyrics.py': 'import bisect\n'
                     '            parsed = timeline(payload)\n'
                     '        safe = {"uri": uri, "title": clean(data.get("title", "")),\n'
                     '                "artist": clean(data.get("artist", "")), "position": position,\n'
-                    '                "playing": data["playing"]}\n'
+                    '                "playing": data["playing"], "duration": number(data.get("duration", '
+                    '0))}\n'
                     '        with self.lock:\n'
                     '            if not self.data or self.data["uri"] != uri:\n'
                     '                self.lines, self.mode = [], "waiting"\n'
@@ -514,7 +532,7 @@ FILES = {'lyrics.py': 'import bisect\n'
                     '    thread = threading.Thread(target=server.serve_forever, daemon=True)\n'
                     '    thread.start()\n'
                     '    fallback = Fallback()\n'
-                    '    previous = None\n'
+                    '    ui = TerminalUI()\n'
                     '    print("\\033[?1049h\\033[?25l", end="", flush=True)\n'
                     '    try:\n'
                     '        while True:\n'
@@ -522,29 +540,302 @@ FILES = {'lyrics.py': 'import bisect\n'
                     '            data, lines, mode, received = state.snapshot()\n'
                     '            age = started - received\n'
                     '            if data is None or age > 3:\n'
-                    '                screen = "Abra o Spotify com a ponte ativada e a letra no Spicy '
-                    'Lyrics.\\nAguardando conexão..."\n'
+                    "                ui.draw('', 'slyrics', 'Abra o Spotify com o Spicy Lyrics.\\nAguardando "
+                    "conexão...',\n"
+                    "                        playing=False, source='Ponte desconectada')\n"
                     '            else:\n'
                     '                elapsed = min(age, 0.5) if data["playing"] else 0.0\n'
                     '                position = data["position"] + max(0, elapsed) + legacy.SYNC_OFFSET\n'
                     '                body, label = choose_body(data, lines, mode, position, fallback)\n'
-                    '                paused = " · pausado" if not data["playing"] else ""\n'
-                    '                screen = f"♪ {data[\'artist\']} — '
-                    '{data[\'title\']}\\n{label}{paused}\\n\\n{body}"\n'
-                    '            if screen != previous:\n'
-                    '                print("\\033[H\\033[J" + screen, end="", flush=True)\n'
-                    '                previous = screen\n'
+                    '                anchor, _ = choose_body(data, lines, mode, position, fallback, '
+                    'complete=True)\n'
+                    "                ui.draw(data['artist'], data['title'], body, position,\n"
+                    "                        data['duration'], data['playing'], label, anchor)\n"
                     '            time.sleep(max(0, 1 / FPS - (time.monotonic() - started)))\n'
                     '    except KeyboardInterrupt:\n'
                     '        pass\n'
                     '    finally:\n'
                     '        fallback.stop.set()\n'
                     '        server.shutdown(); server.server_close()\n'
-                    '        print("\\033[?25h\\033[?1049l", end="", flush=True)\n'
+                    '        print("\\033[0m\\033[?25h\\033[?1049l", end="", flush=True)\n'
                     '\n'
                     '\n'
                     'if __name__ == "__main__":\n'
-                    '    main()\n'}
+                    '    main()\n',
+ 'terminal_ui.py': '"""Dependency-free terminal layout with live, validated INI settings."""\n'
+                   'import configparser\n'
+                   'import os\n'
+                   'from pathlib import Path\n'
+                   'import re\n'
+                   'import shutil\n'
+                   'import sys\n'
+                   'import time\n'
+                   'import unicodedata\n'
+                   '\n'
+                   'DEFAULTS = {\n'
+                   "    'layout': {'alignment': 'center', 'vertical': 'center', 'padding': '3',\n"
+                   "               'line_spacing': '1', 'lyrics_width': '86', 'border': 'true',\n"
+                   "               'show_progress': 'true', 'show_source': 'true',\n"
+                   "               'show_footer': 'true', 'cursor': '▎'},\n"
+                   "    'colors': {'text': '#DEDAD0', 'muted': '#88867F', 'accent': '#C8BA91',\n"
+                   "               'border': '#69675E', 'background': 'default'},\n"
+                   '}\n'
+                   "CONFIG_PATH = Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config'))) / "
+                   "'spotify-live-lyrics/ui.ini'\n"
+                   '\n'
+                   '\n'
+                   'def safe(text):\n'
+                   "    return ''.join(c for c in str(text) if c.isprintable())\n"
+                   '\n'
+                   '\n'
+                   'def cells(text):\n'
+                   '    return sum(0 if unicodedata.combining(c) else\n'
+                   "               2 if unicodedata.east_asian_width(c) in 'WF' else 1 for c in text)\n"
+                   '\n'
+                   '\n'
+                   'def crop(text, width):\n'
+                   "    result, used = '', 0\n"
+                   '    for c in safe(text):\n'
+                   '        size = cells(c)\n'
+                   '        if used + size > width:\n'
+                   '            break\n'
+                   '        result += c\n'
+                   '        used += size\n'
+                   '    return result\n'
+                   '\n'
+                   '\n'
+                   'def truncate(text, width):\n'
+                   '    text = safe(text)\n'
+                   "    return text if cells(text) <= width else crop(text, max(0, width - 1)) + ('…' if "
+                   "width else '')\n"
+                   '\n'
+                   '\n'
+                   'def chunks(text, width):\n'
+                   '    """Hard wrap by display cells; unlike textwrap, preserves partial typing spaces."""\n'
+                   "    result, part, used = [], '', 0\n"
+                   '    for c in text:\n'
+                   '        size = cells(c)\n'
+                   '        if part and used + size > width:\n'
+                   '            result.append(part)\n'
+                   "            part, used = '', 0\n"
+                   '        part += c\n'
+                   '        used += size\n'
+                   '    result.append(part)\n'
+                   '    return result\n'
+                   '\n'
+                   '\n'
+                   'def clock(seconds):\n'
+                   '    seconds = max(0, int(seconds))\n'
+                   '    minutes, seconds = divmod(seconds, 60)\n'
+                   "    return f'{minutes}:{seconds:02d}'\n"
+                   '\n'
+                   '\n'
+                   'class Settings:\n'
+                   '    def __init__(self, path=CONFIG_PATH):\n'
+                   '        self.path = Path(path)\n'
+                   '        self.values = {k: dict(v) for k, v in DEFAULTS.items()}\n'
+                   '        self.next_check = 0\n'
+                   "        self.error = ''\n"
+                   '        self.signature = None\n'
+                   '\n'
+                   '    def reload(self):\n'
+                   '        now = time.monotonic()\n'
+                   '        if now < self.next_check:\n'
+                   '            return\n'
+                   '        self.next_check = now + .5\n'
+                   '        try:\n'
+                   '            stat = self.path.stat()\n'
+                   '            signature = (stat.st_mtime_ns, stat.st_size)\n'
+                   '            if signature == self.signature:\n'
+                   '                return\n'
+                   '            parser = configparser.ConfigParser(interpolation=None)\n'
+                   '            parser.read_dict(DEFAULTS)\n'
+                   "            with self.path.open(encoding='utf-8') as file:\n"
+                   '                parser.read_file(file)\n'
+                   "            for name, allowed in [('alignment', ('left', 'center', 'right')),\n"
+                   "                                  ('vertical', ('top', 'center', 'bottom'))]:\n"
+                   "                if parser['layout'][name] not in allowed:\n"
+                   '                    raise ValueError(name)\n'
+                   "            for name, low, high in [('padding', 0, 20), ('line_spacing', 0, 4),\n"
+                   "                                    ('lyrics_width', 10, 240)]:\n"
+                   "                if not low <= parser.getint('layout', name) <= high:\n"
+                   '                    raise ValueError(name)\n'
+                   "            for name in ('border', 'show_progress', 'show_source', 'show_footer'):\n"
+                   "                parser.getboolean('layout', name)\n"
+                   "            cursor = parser['layout']['cursor']\n"
+                   '            if safe(cursor) != cursor or cells(cursor) > 2:\n'
+                   "                raise ValueError('cursor')\n"
+                   "            for color in parser['colors'].values():\n"
+                   "                if color != 'default' and not re.fullmatch(r'#[0-9a-fA-F]{6}', color):\n"
+                   "                    raise ValueError('color')\n"
+                   '            self.values = {section: dict(parser[section]) for section in DEFAULTS}\n'
+                   '            self.signature = signature\n'
+                   "            self.error = ''\n"
+                   '        except FileNotFoundError:\n'
+                   "            self.error = ''\n"
+                   '        except (OSError, ValueError, configparser.Error):\n'
+                   "            self.error = 'ui.ini inválido · mantendo o último visual válido'\n"
+                   '\n'
+                   '    def flag(self, name):\n'
+                   "        return self.values['layout'][name].lower() in ('1', 'yes', 'true', 'on')\n"
+                   '\n'
+                   '\n'
+                   'class TerminalUI:\n'
+                   '    def __init__(self, settings=None):\n'
+                   '        self.settings = settings or Settings()\n'
+                   '        self.previous = []\n'
+                   '        self.last_size = None\n'
+                   '        self.frame_key = None\n'
+                   '        self.frame_rows = None\n'
+                   '\n'
+                   '    def color(self, name):\n'
+                   "        color = self.settings.values['colors'][name]\n"
+                   "        if color == 'default':\n"
+                   "            return '\\033[49m' if name == 'background' else '\\033[39m'\n"
+                   '        r, g, b = (int(color[i:i+2], 16) for i in (1, 3, 5))\n'
+                   '        return f\'\\033[{48 if name == "background" else 38};2;{r};{g};{b}m\'\n'
+                   '\n'
+                   '    def compose(self, artist, title, body, position=0, duration=0,\n'
+                   "                playing=True, source='', anchor=None, size=None):\n"
+                   '        self.settings.reload()\n'
+                   '        width, height = size or shutil.get_terminal_size((100, 28))\n'
+                   '        # Reserve the final column: writing it can cause terminal auto-wrap.\n'
+                   '        width = max(1, width - 1)\n'
+                   '        height = max(1, height)\n'
+                   '        frame_key = (artist, title, body, int(position), int(duration),\n'
+                   '                     int(width * min(1, max(0, position / duration))) if duration > 0 '
+                   'else 0,\n'
+                   '                     playing, source, anchor, width, height,\n'
+                   '                     repr(self.settings.values), self.settings.error)\n'
+                   '        if frame_key == self.frame_key:\n'
+                   '            return self.frame_rows\n'
+                   "        layout = self.settings.values['layout']\n"
+                   "        border = self.settings.flag('border') and width >= 20 and height >= 7\n"
+                   '        edge = int(border)\n'
+                   "        padding = min(int(layout['padding']), max(0, (width - 12) // 2))\n"
+                   '        left = edge + padding\n'
+                   '        usable = max(1, width - 2 * left)\n'
+                   "        grid = [[' ' for _ in range(width)] for _ in range(height)]\n"
+                   "        styles = [['text' for _ in range(width)] for _ in range(height)]\n"
+                   '\n'
+                   "        def put(y, x, text, style='text'):\n"
+                   '            if not 0 <= y < height:\n'
+                   '                return\n'
+                   '            for c in crop(text, max(0, width - x)):\n'
+                   '                n = cells(c)\n'
+                   '                if n == 0:\n'
+                   '                    if x > 0:\n'
+                   '                        grid[y][x-1] += c\n'
+                   '                    continue\n'
+                   '                if x < 0 or x + n > width:\n'
+                   '                    break\n'
+                   '                grid[y][x], styles[y][x] = c, style\n'
+                   '                for k in range(1, n):\n'
+                   "                    grid[y][x+k], styles[y][x+k] = '', style\n"
+                   '                x += n\n'
+                   '\n'
+                   '        if border:\n'
+                   "            put(0, 0, '╭' + '─' * (width - 2) + '╮', 'border')\n"
+                   "            put(height - 1, 0, '╰' + '─' * (width - 2) + '╯', 'border')\n"
+                   '            for y in range(1, height - 1):\n'
+                   "                put(y, 0, '│', 'border')\n"
+                   "                put(y, width - 1, '│', 'border')\n"
+                   '        header_y = edge + (1 if height >= 12 else 0)\n'
+                   "        state = 'TOCANDO' if playing else 'PAUSADO'\n"
+                   "        title_text = f'{title}  —  {artist}' if artist else title or 'slyrics'\n"
+                   '        state_space = len(state) + 3 if usable >= 45 else 0\n'
+                   '        put(header_y, left, truncate(title_text, usable - state_space))\n'
+                   '        if state_space:\n'
+                   "            put(header_y, left + usable - len(state), state, 'accent')\n"
+                   '        content_top = header_y + 2\n'
+                   "        if self.settings.flag('show_progress') and height >= 9:\n"
+                   '            elapsed = clock(position)\n'
+                   "            total = clock(duration) if duration > 0 else '--:--'\n"
+                   '            track_width = max(1, usable - len(elapsed) - len(total) - 4)\n'
+                   "            put(header_y + 1, left, elapsed, 'muted')\n"
+                   '            bar_x = left + len(elapsed) + 2\n'
+                   "            put(header_y + 1, bar_x, '─' * track_width, 'border')\n"
+                   '            filled = int(track_width * min(1, max(0, position / duration))) if duration '
+                   '> 0 else 0\n'
+                   '            if filled:\n'
+                   "                put(header_y + 1, bar_x, '━' * filled, 'accent')\n"
+                   "            put(header_y + 1, left + usable - len(total), total, 'muted')\n"
+                   '            content_top = header_y + 3\n'
+                   '        footer_y = height - edge - 2\n'
+                   "        footer = self.settings.flag('show_footer') and height >= 12\n"
+                   '        content_bottom = footer_y - 1 if footer else height - edge - 1\n'
+                   '        room = max(1, content_bottom - content_top + 1)\n'
+                   "        wrap_width = min(usable, int(layout['lyrics_width']))\n"
+                   "        visible_rows = body.split('\\n')\n"
+                   "        full_rows = (anchor if anchor is not None else body).split('\\n')\n"
+                   '        prepared = []\n'
+                   '        for i, visible in enumerate(visible_rows):\n'
+                   '            full = full_rows[i] if i < len(full_rows) else visible\n'
+                   "            cursor = visible.endswith('█')\n"
+                   '            visible = visible[:-1] if cursor else visible\n'
+                   '            # Reserve full phrase geometry: centering must not move on each keystroke.\n'
+                   '            segments = chunks(full, wrap_width)\n'
+                   '            remaining = len(visible)\n'
+                   '            for j, segment in enumerate(segments):\n'
+                   '                count = min(len(segment), max(0, remaining))\n'
+                   '                fragment = segment[:count]\n'
+                   '                at_cursor = cursor and 0 <= remaining <= len(segment) and (remaining > 0 '
+                   'or j == 0)\n'
+                   '                if at_cursor:\n'
+                   "                    fragment += layout['cursor']\n"
+                   '                prepared.append((fragment, min(wrap_width, cells(segment) + '
+                   "cells(layout['cursor'])), i == len(visible_rows)-1))\n"
+                   '                remaining -= len(segment)\n'
+                   '            if i + 1 < len(visible_rows):\n'
+                   "                prepared.extend([('', 0, False)] * int(layout['line_spacing']))\n"
+                   '        if len(prepared) > room:\n'
+                   '            visible_end = max((i + 1 for i, row in enumerate(prepared) if row[0]), '
+                   'default=1)\n'
+                   '            window_start = max(0, visible_end - room)\n'
+                   '            prepared = prepared[window_start:window_start + room]\n'
+                   '        offset = max(0, room - len(prepared))\n'
+                   "        start_y = content_top + (offset // 2 if layout['vertical'] == 'center' else "
+                   "offset if layout['vertical'] == 'bottom' else 0)\n"
+                   '        for y, (text, full_width, active) in enumerate(prepared, start_y):\n'
+                   '            free = max(0, usable - full_width)\n'
+                   "            x = left + (free // 2 if layout['alignment'] == 'center' else free if "
+                   "layout['alignment'] == 'right' else 0)\n"
+                   "            put(y, x, crop(text, usable - (x-left)), 'accent' if active else 'text')\n"
+                   '        if footer:\n'
+                   "            status = self.settings.error or (source if self.settings.flag('show_source') "
+                   "else '')\n"
+                   "            hint = 'Ctrl+C sair · ui.ini aparência'\n"
+                   '            if usable > len(hint) + 15:\n'
+                   "                put(footer_y, left, truncate(status, usable - len(hint) - 3), 'muted')\n"
+                   "                put(footer_y, left + usable - len(hint), hint, 'muted')\n"
+                   '            else:\n'
+                   "                put(footer_y, left, truncate(status or 'Ctrl+C sair', usable), 'muted')\n"
+                   '        rows = []\n'
+                   '        for row, style_row in zip(grid, styles):\n'
+                   "            parts, previous = [self.color('background')], None\n"
+                   '            for c, style in zip(row, style_row):\n'
+                   '                if style != previous:\n'
+                   '                    parts.append(self.color(style))\n'
+                   '                    previous = style\n'
+                   '                parts.append(c)\n'
+                   "            rows.append(''.join(parts) + '\\033[0m')\n"
+                   '        self.frame_key, self.frame_rows = frame_key, rows\n'
+                   '        return rows\n'
+                   '\n'
+                   '    def draw(self, *args, **kwargs):\n'
+                   '        size = shutil.get_terminal_size((100, 28))\n'
+                   '        rows = self.compose(*args, **kwargs, size=size)\n'
+                   '        output = []\n'
+                   '        if size != self.last_size:\n'
+                   "            output.append('\\033[2J')\n"
+                   '            self.previous = []\n'
+                   '        for i, row in enumerate(rows):\n'
+                   '            if i >= len(self.previous) or row != self.previous[i]:\n'
+                   "                output.append(f'\\033[{i+1};1H' + row)\n"
+                   '        if output:\n'
+                   "            sys.stdout.write(''.join(output))\n"
+                   '            sys.stdout.flush()\n'
+                   '        self.previous, self.last_size = rows, size\n'}
 
 def repair():
     target = Path.home() / ".local/share/spotify-live-lyrics"

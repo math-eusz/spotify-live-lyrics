@@ -143,6 +143,9 @@ class Timing(unittest.TestCase):
             target = home/'.local/share/spotify-live-lyrics'
             target.mkdir(parents=True)
             (target/'lyrics.py').write_text('old code')
+            appearance = home / '.config/spotify-live-lyrics/ui.ini'
+            appearance.parent.mkdir(parents=True)
+            appearance.write_text('[layout]\nalignment = left\n')
             with patch.object(Path, 'home', return_value=home), \
                  patch.object(install.shutil, 'which', return_value='/mock/spicetify'), \
                  patch.object(install.subprocess, 'check_output', return_value=str(config)), \
@@ -150,6 +153,8 @@ class Timing(unittest.TestCase):
                 install.install(ROOT)
             self.assertEqual(next((target/'backup').glob('*/lyrics.py')).read_text(), 'old code')
             self.assertEqual(config.read_text(), 'existing config')
+            self.assertEqual(appearance.read_text(), '[layout]\nalignment = left\n')
+            self.assertEqual((target/'terminal_ui.py').read_bytes(), (ROOT/'terminal_ui.py').read_bytes())
             ext = (config.parent/'Extensions/slyrics-bridge.js').read_text()
             self.assertNotIn('__SLYRICS_LOCAL_TOKEN__', ext)
             self.assertEqual((target/'bridge-config.json').stat().st_mode & 0o777, 0o600)
@@ -169,7 +174,7 @@ const fs = require('node:fs');
 const source = fs.readFileSync(0, 'utf8');
 const nativeFetch = global.fetch;
 global.location = {origin: 'https://xpui.app.spotify.com'};
-global.Spicetify = {Player:{data:{item:{uri:'spotify:track:abc',name:'Test',metadata:{artist_name:'Artist'}}},getProgress:()=>30100,isPlaying:()=>false}};
+global.Spicetify = {Player:{data:{item:{uri:'spotify:track:abc',name:'Test',metadata:{artist_name:'Artist'}}},getProgress:()=>30100,getDuration:()=>262000,isPlaying:()=>false}};
 global.caches = {keys:async()=>['unrelated','SpicyLyrics_LyricsStore_g1'],open:async(name)=>({match:async(url)=>{
  if(name !== 'SpicyLyrics_LyricsStore_g1' || url !== location.origin+'/abc') throw Error('wrong cache');
  return {json:async()=>({ExpiresAt:Date.now()+60000,Content:{Type:'Syllable',uri:'spotify:track:abc',Content:[{Type:'Vocal',Lead:{Syllables:[{Text:'hello',StartTime:30,EndTime:31}]}}]}})};
@@ -188,6 +193,7 @@ setTimeout(()=>process.exit(global.__slyricsStop ? 0:1),400);
 '''
             subprocess.run(['node','-e',harness],input=code,text=True,check=True,timeout=5)
             self.assertEqual(state.snapshot()[0]['uri'], 'spotify:track:abc')
+            self.assertEqual(state.snapshot()[0]['duration'], 262)
             self.assertEqual(state.snapshot()[1][0]['text'], 'hello')
             url=f'http://127.0.0.1:{server.server_port}/state'
             req=urllib.request.Request(url,data=b'{}',headers={'Origin':'https://xpui.app.spotify.com','X-Slyrics-Key':'wrong'})

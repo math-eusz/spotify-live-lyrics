@@ -6,6 +6,7 @@ import math
 import queue
 import shutil
 import lyrics as legacy
+from terminal_ui import TerminalUI
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import threading
@@ -97,10 +98,10 @@ def timeline(payload):
     return result, "syllable" if kind == "Syllable" else "line"
 
 
-def render(lines, position, ahead=TYPE_AHEAD):
+def render(lines, position, ahead=TYPE_AHEAD, complete=False):
     if not lines or position < lines[0]["start"]:
         return "♪ Instrumental..."
-    return legacy.render_block(lines, position, ahead, LINES_PER_BLOCK, PAUSE_SECONDS)
+    return legacy.render_block(lines, position, ahead, LINES_PER_BLOCK, PAUSE_SECONDS, complete=complete)
 
 
 class Fallback:
@@ -153,12 +154,12 @@ class Fallback:
         return [], "Buscando sincronização na fonte antiga..."
 
 
-def choose_body(data, lines, mode, position, fallback):
+def choose_body(data, lines, mode, position, fallback, complete=False):
     if lines:
         label = "sílabas" if mode == "syllable" else "linhas"
-        return render(lines, position), "Spicy Lyrics · " + label + " · digitação contínua"
+        return render(lines, position, complete=complete), "Spicy Lyrics · " + label + " · digitação contínua"
     old_lines, message = fallback.get(data)
-    body = legacy.render_block(old_lines, position) if old_lines else message
+    body = legacy.render_block(old_lines, position, complete=complete) if old_lines else message
     return body, "Fonte antiga · digitação contínua"
 
 
@@ -187,7 +188,7 @@ class State:
             parsed = timeline(payload)
         safe = {"uri": uri, "title": clean(data.get("title", "")),
                 "artist": clean(data.get("artist", "")), "position": position,
-                "playing": data["playing"]}
+                "playing": data["playing"], "duration": number(data.get("duration", 0))}
         with self.lock:
             if not self.data or self.data["uri"] != uri:
                 self.lines, self.mode = [], "waiting"
@@ -266,7 +267,7 @@ def main():
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     fallback = Fallback()
-    previous = None
+    ui = TerminalUI()
     print("\033[?1049h\033[?25l", end="", flush=True)
     try:
         while True:
@@ -274,23 +275,22 @@ def main():
             data, lines, mode, received = state.snapshot()
             age = started - received
             if data is None or age > 3:
-                screen = "Abra o Spotify com a ponte ativada e a letra no Spicy Lyrics.\nAguardando conexão..."
+                ui.draw('', 'slyrics', 'Abra o Spotify com o Spicy Lyrics.\nAguardando conexão...',
+                        playing=False, source='Ponte desconectada')
             else:
                 elapsed = min(age, 0.5) if data["playing"] else 0.0
                 position = data["position"] + max(0, elapsed) + legacy.SYNC_OFFSET
                 body, label = choose_body(data, lines, mode, position, fallback)
-                paused = " · pausado" if not data["playing"] else ""
-                screen = f"♪ {data['artist']} — {data['title']}\n{label}{paused}\n\n{body}"
-            if screen != previous:
-                print("\033[H\033[J" + screen, end="", flush=True)
-                previous = screen
+                anchor, _ = choose_body(data, lines, mode, position, fallback, complete=True)
+                ui.draw(data['artist'], data['title'], body, position,
+                        data['duration'], data['playing'], label, anchor)
             time.sleep(max(0, 1 / FPS - (time.monotonic() - started)))
     except KeyboardInterrupt:
         pass
     finally:
         fallback.stop.set()
         server.shutdown(); server.server_close()
-        print("\033[?25h\033[?1049l", end="", flush=True)
+        print("\033[0m\033[?25h\033[?1049l", end="", flush=True)
 
 
 if __name__ == "__main__":

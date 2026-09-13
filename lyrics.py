@@ -7,6 +7,7 @@ import statistics
 import subprocess
 import threading
 import time
+from terminal_ui import TerminalUI
 
 FPS = 180
 PLAYER = "spotify"
@@ -21,6 +22,7 @@ STOP = threading.Event()
 STATES = queue.Queue(maxsize=1)
 REQUESTS = queue.Queue(maxsize=1)
 RESULTS = queue.Queue()
+DURATIONS = queue.Queue(maxsize=1)
 
 
 def command(args, timeout=2):
@@ -47,8 +49,16 @@ def player_worker():
         started = time.monotonic()
         if started >= next_metadata:
             raw = command(["playerctl", "-p", PLAYER, "metadata", "--format",
-                           "{{artist}}\t{{title}}"])
-            song = tuple(raw.split("\t", 1)) if "\t" in raw else None
+                           "{{artist}}\t{{title}}\t{{mpris:length}}"])
+            fields = raw.split("\t")
+            song = tuple(fields[:2]) if len(fields) >= 2 else None
+            try:
+                duration = float(fields[2]) / 1_000_000
+                if not math.isfinite(duration):
+                    duration = 0
+            except (ValueError, IndexError):
+                duration = 0
+            latest(DURATIONS, max(0, duration))
             next_metadata = time.monotonic() + 0.5
         status = command(["playerctl", "-p", PLAYER, "status"])
         before = time.monotonic()
@@ -134,7 +144,7 @@ def lyrics_worker():
 
 
 def render_block(lines, position, ahead=TYPE_AHEAD, block_size=LINES_PER_BLOCK,
-                 pause_seconds=PAUSE_SECONDS):
+                 pause_seconds=PAUSE_SECONDS, complete=False):
     current = bisect.bisect_right([line["start"] for line in lines], position) - 1
     if current < 0:
         return "..."
@@ -155,7 +165,7 @@ def render_block(lines, position, ahead=TYPE_AHEAD, block_size=LINES_PER_BLOCK,
         count = bisect.bisect_right(line["weights"], progress * line["weights"][-1])
         count = min(len(line["text"]), max(1, count))
         cursor = "█" if progress < 1.0 else ""
-        rows.append(line["text"][:count] + cursor)
+        rows.append(line["text"] if complete else line["text"][:count] + cursor)
         silence_start = line["blank"] if line["blank"] is not None else line["end"]
         if position - silence_start >= pause_seconds:
             rows.append("")
@@ -174,7 +184,8 @@ def main():
     song = None
     lines = []
     loading = False
-    last_screen = None
+    ui = TerminalUI()
+    duration = 0
     print("\033[?1049h\033[?25l", end="", flush=True)
     try:
         while True:
@@ -202,26 +213,29 @@ def main():
             # Se as consultas falharem, não deixa o relógio correr indefinidamente.
             elapsed = min(0.5, max(0.0, now - measured_at)) if status == "Playing" else 0.0
             position = real_position + elapsed + SYNC_OFFSET
+            try:
+                duration = DURATIONS.get_nowait()
+            except queue.Empty:
+                pass
             if not song:
-                screen = "Spotify não encontrado. Abra o Spotify e toque uma música."
+                body = "Abra o Spotify e toque uma música."
+                anchor = body
+            elif loading:
+                body = anchor = "Buscando letra..."
+            elif not lines:
+                body = anchor = "Letra sincronizada não encontrada."
             else:
-                if loading:
-                    body = "Buscando letra..."
-                elif not lines:
-                    body = "Letra sincronizada não encontrada."
-                else:
-                    body = render_block(lines, position)
-                label = "  [pausado]" if status == "Paused" else ""
-                screen = f"♪ {song[0]} — {song[1]}{label}\n\n{body}"
-            if screen != last_screen:
-                print("\033[H\033[J" + screen, end="", flush=True)
-                last_screen = screen
+                body = render_block(lines, position)
+                anchor = render_block(lines, position, complete=True)
+            ui.draw(song[0] if song else '', song[1] if song else 'slyrics',
+                    body, position, duration, status == 'Playing',
+                    'Fonte antiga · digitação contínua', anchor)
             time.sleep(max(0.0, 1 / FPS - (time.monotonic() - frame_start)))
     except KeyboardInterrupt:
         pass
     finally:
         STOP.set()
-        print("\033[?25h\033[?1049l", end="", flush=True)
+        print("\033[0m\033[?25h\033[?1049l", end="", flush=True)
 
 
 if __name__ == "__main__":

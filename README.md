@@ -22,6 +22,35 @@ python ~/.local/share/spotify-live-lyrics/lyrics.py
 
 Your existing `slyrics` alias still works. Press Ctrl+C to exit. The terminal reports whether the data contains syllable timings or only line timings. If Spicy Lyrics has no usable timing data (including static, empty or unsupported lyrics), syncedlyrics is queried automatically in the background. Install the same syncedlyrics command used by the previous version. Successful results are cached per track; failed searches retry after 60 seconds. Late results cannot replace another track’s lyrics. Spicy Lyrics takes priority again when timed lyrics arrive.
 
+## Customizable terminal interface
+
+Download `install_slyrics_interface_v4.py` for this release and run `python ~/Downloads/install_slyrics_interface_v4.py`. Close any running slyrics process first. The installer updates the companion extension to send track duration and applies Spicetify (Spotify may restart). It backs up the old code and preserves your appearance settings.
+
+The default interface has a warm neutral palette, a thin rounded terminal border, title/artist, playback status, elapsed/total time, a progress bar, and centered lyrics. It preserves the four-line pages, continuous typewriter timing and automatic syncedlyrics fallback. Lines are positioned using their complete text, so centering does not slide on every character. Long lyrics wrap within the available width; terminal resizing is handled live. Only changed terminal rows are rewritten.
+
+Edit your appearance settings:
+
+```sh
+nano ~/.config/spotify-live-lyrics/ui.ini
+```
+
+If `XDG_CONFIG_HOME` is set, use `$XDG_CONFIG_HOME/spotify-live-lyrics/ui.ini` instead. Save changes to apply within about half a second, without restarting. Invalid edits retain the last valid appearance and display a footer message.
+
+| Setting in `[layout]` | Values / effect |
+| --- | --- |
+| `alignment` | `left`, `center`, `right` |
+| `vertical` | `top`, `center`, `bottom` |
+| `padding` | Side margin, 0–20 terminal cells |
+| `line_spacing` | Blank rows between phrases, 0–4 |
+| `lyrics_width` | Maximum lyric width, 10–240 cells |
+| `border` | `true` / `false` |
+| `show_progress` | Show elapsed time, bar and duration |
+| `show_source` | Show lyric source in the footer |
+| `show_footer` | Show or hide the entire footer |
+| `cursor` | Typewriter cursor, e.g. `▎`, `█`, or empty |
+
+`[colors]` accepts `#RRGGBB` or `default` for `text`, `muted`, `accent`, `border`, and `background`. The default background follows your terminal, including its transparency. Font size and blur remain terminal settings. The progress bar is a display, not a seek control. Unknown duration is shown as `--:--`, never guessed.
+
 ## How it works
 
 `slyrics-bridge.js` reads **only the current track** from Cache Storage entries whose names begin with `SpicyLyrics_LyricsStore`. It sends the lyrics and the Spicetify player's current position to a Python listener at `127.0.0.1:43829`. It does not request account tokens, intercept requests, query a lyrics API, or read unrelated caches. The per-install local bridge key is stored outside git.
@@ -59,7 +88,7 @@ Use `--legacy` or restore `lyrics.py` from your timestamped backup if you want t
 
 ## Development
 
-Run `python -m unittest discover -s tests -v` with Node.js available for the transport test. The installable standalone script embeds `lyrics.py`, `spicy_bridge.py`, `slyrics-bridge.js` and `install.py`; regenerate it with `python build_installer.py` after changes.
+Run `python -m unittest discover -s tests -v` with Node.js available for the transport test. The installable standalone script embeds `lyrics.py`, `spicy_bridge.py`, `slyrics-bridge.js`, `terminal_ui.py`, `ui.ini` and `install.py`; regenerate it with `python build_installer.py` after changes.
 
 ## Protocol references
 
