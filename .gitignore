@@ -9,3 +9,5 @@ cache/
 .env
 .env.*
 !.env.example
+
+bridge-config.json
