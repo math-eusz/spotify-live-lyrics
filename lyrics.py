@@ -133,30 +133,31 @@ def lyrics_worker():
         RESULTS.put((song, lines))
 
 
-def render_block(lines, position):
+def render_block(lines, position, ahead=TYPE_AHEAD, block_size=LINES_PER_BLOCK,
+                 pause_seconds=PAUSE_SECONDS):
     current = bisect.bisect_right([line["start"] for line in lines], position) - 1
     if current < 0:
         return "..."
-    first = (current // LINES_PER_BLOCK) * LINES_PER_BLOCK
+    first = (current // block_size) * block_size
     rows = []
     for i in range(first, current + 1):
         line = lines[i]
         if i > first:
             previous = lines[i - 1]
             silence_start = previous["blank"] if previous["blank"] is not None else previous["end"]
-            if line["start"] - silence_start >= PAUSE_SECONDS:
+            if line["start"] - silence_start >= pause_seconds:
                 rows.append("")
         if i < current:
             rows.append(line["text"])
             continue
-        elapsed = max(0.0, position - line["start"] + TYPE_AHEAD)
+        elapsed = max(0.0, position - line["start"] + ahead)
         progress = min(1.0, elapsed / line["duration"])
         count = bisect.bisect_right(line["weights"], progress * line["weights"][-1])
         count = min(len(line["text"]), max(1, count))
         cursor = "█" if progress < 1.0 else ""
         rows.append(line["text"][:count] + cursor)
         silence_start = line["blank"] if line["blank"] is not None else line["end"]
-        if position - silence_start >= PAUSE_SECONDS:
+        if position - silence_start >= pause_seconds:
             rows.append("")
     return "\n".join(rows)
 
