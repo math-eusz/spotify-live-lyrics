@@ -3,6 +3,9 @@ import bisect
 import hmac
 import json
 import math
+import queue
+import shutil
+import lyrics as legacy
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import threading
@@ -83,29 +86,80 @@ def timeline(payload):
         # A sequential terminal cannot reveal overlapping parts out of text order.
         for i in range(1, len(reveals)):
             reveals[i] = max(reveals[i - 1], reveals[i])
-        result.append({"start": start, "end": end, "text": "".join(chars), "reveals": reveals})
+        weights, total = [], 0.0
+        for char in chars:
+            total += 0.25 if char.isspace() else 0.45 if char in ",.;:!?—-" else 1.0
+            weights.append(total)
+        result.append({"start": start, "end": end, "text": "".join(chars),
+                       "reveals": reveals, "weights": weights, "blank": end,
+                       "duration": max(0.1, (end - start) * legacy.TYPE_RATIO)})
     result.sort(key=lambda line: line["start"])
     return result, "syllable" if kind == "Syllable" else "line"
 
 
 def render(lines, position, ahead=TYPE_AHEAD):
-    # Never use the anticipation offset for page changes or the instrumental intro.
-    current = bisect.bisect_right([line["start"] for line in lines], position) - 1
-    if current < 0:
+    if not lines or position < lines[0]["start"]:
         return "♪ Instrumental..."
-    first = current // LINES_PER_BLOCK * LINES_PER_BLOCK
-    rows = []
-    for i in range(first, current + 1):
-        line = lines[i]
-        if i > first and line["start"] - lines[i - 1]["end"] >= PAUSE_SECONDS:
-            rows.append("")
-        if i != current:
-            rows.append(line["text"])
-        else:
-            count = bisect.bisect_right(line["reveals"], position + ahead)
-            cursor = "█" if count < len(line["text"]) and position < line["end"] else ""
-            rows.append(line["text"][:count] + cursor)
-    return "\n".join(rows)
+    return legacy.render_block(lines, position, ahead, LINES_PER_BLOCK, PAUSE_SECONDS)
+
+
+class Fallback:
+    """One background lookup at a time; results are keyed to their exact track."""
+    def __init__(self):
+        self.requests = queue.Queue(maxsize=1)
+        self.results = queue.Queue()
+        self.stop = threading.Event()
+        self.cache = {}
+        self.pending = set()
+        self.available = bool(shutil.which("syncedlyrics"))
+        self.thread = threading.Thread(target=self.worker, daemon=True)
+        self.thread.start()
+
+    def worker(self):
+        while not self.stop.is_set():
+            try:
+                key = self.requests.get(timeout=0.2)
+            except queue.Empty:
+                continue
+            raw = legacy.command(["syncedlyrics", "--synced-only",
+                                  " - ".join(key[1:])], 30)
+            self.results.put((key, legacy.parse_lyrics(raw)))
+
+    def get(self, data):
+        while True:
+            try:
+                key, lines = self.results.get_nowait()
+            except queue.Empty:
+                break
+            self.pending.discard(key)
+            if len(self.cache) >= 64:
+                self.cache.pop(next(iter(self.cache)))
+            self.cache[key] = (lines, time.monotonic())
+        if not self.available:
+            return [], "syncedlyrics não encontrado; necessário para a fonte antiga."
+        key = (data["uri"], data["artist"], data["title"])
+        if not key[1] or not key[2]:
+            return [], "Aguardando artista e título para buscar na fonte antiga..."
+        cached = self.cache.get(key)
+        if cached and (cached[0] or time.monotonic() - cached[1] < 60):
+            return cached[0], "Letra sincronizada não encontrada nas duas fontes."
+        if key not in self.pending:
+            try:
+                self.requests.put_nowait(key)
+            except queue.Full:
+                pass
+            else:
+                self.pending.add(key)
+        return [], "Buscando sincronização na fonte antiga..."
+
+
+def choose_body(data, lines, mode, position, fallback):
+    if lines:
+        label = "sílabas" if mode == "syllable" else "linhas"
+        return render(lines, position), "Spicy Lyrics · " + label + " · digitação contínua"
+    old_lines, message = fallback.get(data)
+    body = legacy.render_block(old_lines, position) if old_lines else message
+    return body, "Fonte antiga · digitação contínua"
 
 
 class State:
@@ -211,6 +265,7 @@ def main():
         return
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
+    fallback = Fallback()
     previous = None
     print("\033[?1049h\033[?25l", end="", flush=True)
     try:
@@ -221,19 +276,11 @@ def main():
             if data is None or age > 3:
                 screen = "Abra o Spotify com a ponte ativada e a letra no Spicy Lyrics.\nAguardando conexão..."
             else:
-                elapsed = min(age, 0.35) if data["playing"] else 0.0
-                position = data["position"] + max(0, elapsed)
-                if lines:
-                    body = render(lines, position)
-                elif mode == "static":
-                    body = "Esta letra não tem tempos de sincronização no Spicy Lyrics."
-                elif mode == "unsupported":
-                    body = "Formato de letra ainda não suportado pela ponte."
-                else:
-                    body = "Abra a letra desta música no Spicy Lyrics e aguarde carregar."
-                label = "sílabas" if mode == "syllable" else "linha (digitação estimada)"
+                elapsed = min(age, 0.5) if data["playing"] else 0.0
+                position = data["position"] + max(0, elapsed) + legacy.SYNC_OFFSET
+                body, label = choose_body(data, lines, mode, position, fallback)
                 paused = " · pausado" if not data["playing"] else ""
-                screen = f"♪ {data['artist']} — {data['title']}\nSpicy Lyrics · {label}{paused}\n\n{body}"
+                screen = f"♪ {data['artist']} — {data['title']}\n{label}{paused}\n\n{body}"
             if screen != previous:
                 print("\033[H\033[J" + screen, end="", flush=True)
                 previous = screen
@@ -241,6 +288,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        fallback.stop.set()
         server.shutdown(); server.server_close()
         print("\033[?25h\033[?1049l", end="", flush=True)
 
