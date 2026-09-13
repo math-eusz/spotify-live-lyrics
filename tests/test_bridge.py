@@ -118,6 +118,23 @@ class Timing(unittest.TestCase):
                 fallback.stop.set()
                 fallback.thread.join(2)
 
+    def test_repair_replaces_old_installation_and_preserves_config(self):
+        import os
+        with tempfile.TemporaryDirectory() as temp:
+            target = Path(temp) / '.local/share/spotify-live-lyrics'
+            target.mkdir(parents=True)
+            (target / 'bridge-config.json').write_text('{"token":"unchanged"}')
+            (target / 'spicy_bridge.py').write_text('old bridge')
+            (target / 'lyrics.py').write_text('old entry point')
+            subprocess.run([sys.executable, str(ROOT / 'corrigir_slyrics_fallback_v3.py'),
+                            '--install-only'], env=dict(os.environ, HOME=temp),
+                           capture_output=True, text=True, check=True, timeout=5)
+            for name in ('lyrics.py', 'spicy_bridge.py'):
+                self.assertEqual((target / name).read_bytes(), (ROOT / name).read_bytes())
+            self.assertEqual(next((target / 'backup').glob('*/spicy_bridge.py')).read_text(),
+                             'old bridge')
+            self.assertEqual((target / 'bridge-config.json').read_text(), '{"token":"unchanged"}')
+
     def test_installer_preserves_files_and_adds_extension(self):
         with tempfile.TemporaryDirectory() as td:
             home = Path(td)
