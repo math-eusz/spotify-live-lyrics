@@ -1,31 +1,25 @@
 # Spotify Live Lyrics
 
-Letras do Spotify no terminal Linux, reveladas caractere por caractere conforme a reprodução avança.
+Letras do Spotify no terminal Linux, reveladas caractere por caractere em blocos de quatro frases.
 
-Esta é a versão inicial do projeto, baseada no script já usado no CachyOS com Hyprland. O programa consulta o Spotify pelo `playerctl`, busca letras LRC pelo `syncedlyrics` e estima o progresso dos caracteres entre dois timestamps de linha.
+## Requisitos e execução
 
-## Requisitos
+Python 3, `playerctl` e `syncedlyrics` disponíveis no PATH. Abra o Spotify (player MPRIS `spotify`), toque uma música e execute `python lyrics.py` na pasta do projeto. Encerre com Ctrl+C.
 
-Python 3, `playerctl`, `syncedlyrics` disponíveis no PATH e Spotify expondo o player MPRIS `spotify`. Não são necessários pacotes Python importados além da biblioteca padrão. O executável `syncedlyrics` é uma dependência externa.
+## Comportamento
 
-## Execução
+As frases completas permanecem no bloco. A quinta frase inicia uma nova página somente ao alcançar seu timestamp: o adiantamento da digitação não antecipa essa troca. Linhas vazias do LRC não contam entre as quatro frases. Pausas de pelo menos dois segundos ganham uma linha em branco, usando marcações vazias do LRC quando disponíveis ou uma estimativa baseada no tamanho das frases e no ritmo das demais linhas.
 
-Abra o Spotify e inicie uma música. Na pasta do projeto, execute:
+As consultas do Spotify e a busca de letras rodam em threads separadas do loop visual. Há cache em memória de até 64 músicas durante a execução. A tela só é redesenhada quando o conteúdo muda.
 
-```bash
-python lyrics.py
-```
+## Ajustes no início de lyrics.py
 
-Encerre com `Ctrl+C`. O programa verifica mudanças de artista e título automaticamente.
+`LINES_PER_BLOCK = 4` controla frases por bloco. `PAUSE_SECONDS = 2.0` controla a pausa mínima para separar trechos. `TYPE_AHEAD = 0.10` adianta o progresso da digitação em 100 ms dentro da frase, sem revelar uma nova frase antes de seu timestamp. `SYNC_OFFSET = 0.00` corrige toda a linha do tempo: valores positivos adiantam tudo, inclusive trocas de bloco; negativos atrasam. `TYPE_RATIO = 0.95` usa 95% do intervalo disponível, com limite estimado para intervalos longos.
 
-## Ajustes
+`FPS = 180` é o alvo do loop, sem garantia de 180 atualizações reais do terminal. Posição e status têm intervalo alvo de 100 ms; metadata, aproximadamente 500 ms. A duração das consultas pode aumentar esses intervalos.
 
-As constantes ficam no início de `lyrics.py`. `FPS = 180` é a frequência alvo do loop, sem garantia de 180 atualizações reais do terminal. A posição é consultada a cada 0,10 segundo; status a cada 0,20 segundo; metadata a cada 0,50 segundo.
+## Limitações e validação
 
-`SYNC_OFFSET = 0.20` adianta a letra em 200 ms; `SYNC_OFFSET = -0.20` atrasa em 200 ms. `TYPE_RATIO = 0.90` distribui a digitação por 90% do intervalo até a próxima linha.
+Não há análise do áudio nem timestamps reais por palavra. Pausas sem marcação e velocidade dos caracteres são estimadas e podem divergir do canto, especialmente em frases sustentadas. A busca ainda pode levar até 30 segundos; a interface continua respondendo durante a espera. A correção de pause e seek depende da próxima consulta.
 
-## Limitações conhecidas
-
-A sincronização dos caracteres é estimada: não há timestamps reais por palavra nesta versão. Intervalos instrumentais podem deixar a digitação lenta, e o último verso usa duração de referência de cinco segundos. Consultas e busca de letras são síncronas; podem interromper o loop visual. Não há cache, e as correções de pause, seek e troca de faixa dependem das consultas periódicas. O horário usado no frame é medido antes das consultas, o que também pode prejudicar a sincronização.
-
-As próximas melhorias priorizam sincronização e fluidez. Esta versão inicial preserva o comportamento do script original para servir de referência.
+Verificados localmente: sintaxe, permanência da quarta frase, transição para a quinta, pausas marcadas e estimadas, retorno para frases anteriores e parsing de timestamps repetidos. A sincronização com áudio real precisa ser avaliada no computador com o Spotify.
