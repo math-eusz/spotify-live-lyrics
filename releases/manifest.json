@@ -1,0 +1,74 @@
+[
+  {
+    "tag": "v0.1.0",
+    "commit": "1dd12470d2efb92a1872a75e355ba1332bb6f86e",
+    "title": "v0.1.0 \u2014 Original terminal lyrics",
+    "notes": "releases/notes/v0.1.0.md",
+    "assets": [
+      "lyrics.py"
+    ],
+    "latest": false
+  },
+  {
+    "tag": "v0.2.0",
+    "commit": "b994f1e7518b088f9f286330018e2c5b69195c13",
+    "title": "v0.2.0 \u2014 Four-line lyric blocks",
+    "notes": "releases/notes/v0.2.0.md",
+    "assets": [
+      "lyrics.py"
+    ],
+    "latest": false
+  },
+  {
+    "tag": "v0.3.0",
+    "commit": "644499646e6ba9c9a1d6689408ab1845f326b3d8",
+    "title": "v0.3.0 \u2014 Smoother timing and vocal pauses",
+    "notes": "releases/notes/v0.3.0.md",
+    "assets": [
+      "lyrics.py"
+    ],
+    "latest": false
+  },
+  {
+    "tag": "v0.4.0",
+    "commit": "3c855f3881ea9feb396195e0e1dd2bb14334ebdd",
+    "title": "v0.4.0 \u2014 Spicy Lyrics local bridge",
+    "notes": "releases/notes/v0.4.0.md",
+    "assets": [
+      "install_spicy_bridge.py"
+    ],
+    "latest": false
+  },
+  {
+    "tag": "v0.4.1",
+    "commit": "cd0b4a2dc220028905dbd95d4aabaa128f20291f",
+    "title": "v0.4.1 \u2014 Automatic fallback and continuous typing",
+    "notes": "releases/notes/v0.4.1.md",
+    "assets": [
+      "install_spicy_bridge.py"
+    ],
+    "latest": false
+  },
+  {
+    "tag": "v0.4.2",
+    "commit": "194cc83a661bdc15a75c25eab6ed8c99ddfddd72",
+    "title": "v0.4.2 \u2014 Verified installation repair",
+    "notes": "releases/notes/v0.4.2.md",
+    "assets": [
+      "install_spicy_bridge.py",
+      "corrigir_slyrics_fallback_v3.py"
+    ],
+    "latest": false
+  },
+  {
+    "tag": "v0.5.0",
+    "commit": "8e86603794090904a19604d8f7f1af0eea379731",
+    "title": "v0.5.0 \u2014 Customizable terminal interface",
+    "notes": "releases/notes/v0.5.0.md",
+    "assets": [
+      "install_slyrics_interface_v4.py",
+      "ui.ini"
+    ],
+    "latest": true
+  }
+]
