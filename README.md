@@ -1,4 +1,4 @@
-# sylrics · 0.6.2
+# sylrics · 0.6.3
 
 Live terminal lyrics, a configurable audio visualizer, and pages that follow phrase cadence. Native mode works without Spicetify or Spicy Lyrics.
 
@@ -8,11 +8,11 @@ The command is **`sylrics`**. The previous spelling, `slyrics`, remains a compat
 
 Requires Linux, Python **3.10+**, and `playerctl` for native playback. `cava` is optional for real audio visualization. `syncedlyrics` is optional: if present, its existing search is tried first; otherwise the built-in LRCLIB client fetches synchronized lyrics directly. An internet connection is needed for uncached lyrics.
 
-Download `sylrics-0.6.2.tar.gz` from the [0.6.2 release](https://github.com/math-eusz/spotify-live-lyrics/releases/tag/v0.6.2), then run:
+Download `sylrics-0.6.3.tar.gz` from the [0.6.3 release](https://github.com/math-eusz/spotify-live-lyrics/releases/tag/v0.6.3), then run:
 
 ```sh
-tar -xzf sylrics-0.6.2.tar.gz
-cd sylrics-0.6.2
+tar -xzf sylrics-0.6.3.tar.gz
+cd sylrics-0.6.3
 sh install.sh
 ```
 
@@ -129,13 +129,13 @@ These are synchronized lyric displays, not speech recognition. Incorrect source 
 
 ## Backups and development
 
-The previous state is preserved in release `v0.6.1`. The installer keeps overwritten runtime files under `~/.local/share/spotify-live-lyrics/backup/before-0.6.2-*`. Historical standalone Python installers remain downloadable from their original releases; they are no longer active installers in this source tree.
+The previous state is preserved in release `v0.6.2`. The installer keeps overwritten runtime files under `~/.local/share/spotify-live-lyrics/backup/before-0.6.3-*`. Historical standalone Python installers remain downloadable from their original releases; they are no longer active installers in this source tree.
 
 Run `python -m unittest discover -s tests -v`. The release workflow validates the project, builds source archives from exact commits, publishes checksums and never moves existing release tags. See [CHANGELOG.md](CHANGELOG.md).
 
 Protocol references: [LRCLIB](https://lrclib.net/docs), [CAVA configuration](https://github.com/karlstav/cava/blob/master/example_files/config), [Spicy Lyrics cache](https://github.com/Spikerko/spicy-lyrics/blob/main/src/modules/Store.ts).
 
-### Version 0.6.2: terminal theme and optional word reveal
+### Version 0.6.3: terminal theme and optional word reveal
 
 ` sylrics theme dynamic ` uses the terminal's default foreground/background and
 indexed accent colors. Wallpaper-driven terminal palettes (including Noctalia
@@ -155,7 +155,7 @@ This is an estimated beta animation, not voice detection or measured word timing
 available in the live INI configuration, and command-line changes take precedence
 over earlier session shortcuts after a successful configuration reload.
 
-### Visualizador — 0.6.2
+### Visualizador — 0.6.3
 
 O visualizador ocupa 85% da largura útil e deixa uma linha de margem inferior.
 A largura acompanha o redimensionamento da janela; os dados de áudio não mudam.
@@ -168,3 +168,31 @@ sylrics config set visualizer.bottom_margin 1
 
 `width_percent` aceita 0 a 100; 0 restaura a largura fixa de `visualizer.width`.
 `bottom_margin` aceita 0 a 8 linhas. A borda e os avisos visíveis são respeitados.
+
+## 0.6.3 — Suavização, fonte e destaque beta
+
+O visualizador usa resposta suave baseada no tempo e oito níveis por célula.
+A suavização padrão é 120 ms; valores maiores deixam a queda mais lenta.
+Zero desativa o filtro. A pausa da reprodução zera as barras imediatamente.
+
+```sh
+sylrics config set visualizer.smoothing_ms 120
+sylrics highlight bold-beta
+sylrics highlight off
+sylrics font 18
+```
+
+O destaque beta coloca em negrito a parte visível da palavra em digitação,
+funciona com `smooth` e `words-beta`, e desaparece nos intervalos vocais.
+É uma indicação estimada pela animação, não uma medição da voz.
+
+`sylrics font 18` abre uma nova janela **Kitty**, com 18 pontos para toda a
+interface, e salva o tamanho. Feche a janela antiga se não quiser duas instâncias.
+`sylrics font` reutiliza o tamanho salvo (padrão: 14). Aceita de 6 a 48 pontos.
+Não altera kitty.conf nem muda a fonte de um terminal já aberto. Em outros
+terminais, use o zoom do terminal. A opção INI é `layout.font_size`.
+Referência: [opções do Kitty](https://sw.kovidgoyal.net/kitty/invocation/).
+
+As opções novas também estão no arquivo INI: `layout.word_highlight = off`
+e `visualizer.smoothing_ms = 120`. O destaque começa desativado; as demais
+preferências existentes são preservadas.

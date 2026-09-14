@@ -18,6 +18,8 @@ class Visualizer:
         self.key = None
         self.failed = False
         self.lock = threading.Lock()
+        self.smoothed = []
+        self.last_frame = None
 
     def configure(self, settings):
         key = (settings['mode'], settings['width'], settings['input'], settings['sensitivity'])
@@ -61,10 +63,28 @@ class Visualizer:
         except (OSError, ValueError):
             pass
 
+    def smooth(self, target, now, milliseconds, playing=True):
+        if not playing:
+            self.smoothed = [0.0] * len(target)
+            self.last_frame = now
+            return self.smoothed
+        if len(self.smoothed) != len(target) or self.last_frame is None or now < self.last_frame:
+            self.smoothed = [0.0] * len(target)
+            self.last_frame = now - 1 / 60
+        dt = min(.25, max(0.0, now - self.last_frame))
+        self.last_frame = now
+        for i, value in enumerate(target):
+            # Faster attack, softer release; exponential response is FPS-independent.
+            tau = milliseconds / 1000 * (.45 if value > self.smoothed[i] else 1.0)
+            alpha = 1.0 if tau <= 0 else -math.expm1(-dt / tau)
+            self.smoothed[i] += (value - self.smoothed[i]) * alpha
+        return list(self.smoothed)
+
     def frame(self, settings, playing, gap, now=None):
         now = time.monotonic() if now is None else now
         mode = settings['mode']
         if mode == 'off':
+            self.smoothed, self.last_frame = [], None
             return ()
         show_label = settings.get('show_label', 'false').lower() in ('true', '1', 'yes', 'on')
         if settings['only_gaps'].lower() in ('true', '1', 'yes', 'on') and not gap:
@@ -85,6 +105,7 @@ class Visualizer:
         if not playing:
             values = [0] * width
             label = 'Ⅱ Pausado'
+        values = self.smooth(values, now, float(settings.get('smoothing_ms', '120')), playing)
         style = settings['style']
         if style == 'wave':
             glyphs = ' ▁▂▃▄▅▆▇█'
@@ -92,8 +113,12 @@ class Visualizer:
         else:
             rows = []
             for level in range(height, 0, -1):
-                rows.append(''.join(('•' if style == 'dots' else '▮') if v*height >= level-.6 else ' '
-                                    for v in values))
+                if style == 'dots':
+                    rows.append(''.join('•' if v*height >= level-.6 else ' ' for v in values))
+                else:
+                    glyphs = ' ▁▂▃▄▅▆▇█'
+                    rows.append(''.join(glyphs[min(8, max(0, int((v*height-level+1)*8)))]
+                                        for v in values))
         return tuple(([label] if show_label else []) + rows)
 
     def close(self):
@@ -110,6 +135,7 @@ class Visualizer:
             if self.proc.stdout:
                 self.proc.stdout.close()
         self.proc = self.thread = None
+        self.smoothed, self.last_frame = [], None
         if self.temp:
             self.temp.cleanup()
         self.temp = None

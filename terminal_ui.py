@@ -12,13 +12,13 @@ DEFAULTS = {
     'layout': {'alignment': 'center', 'vertical': 'center', 'padding': '3',
                'line_spacing': '1', 'lyrics_width': '86', 'border': 'true',
                'show_progress': 'true', 'show_source': 'false',
-               'show_hints': 'false', 'show_footer': 'true', 'cursor': '▎', 'icons': 'true'},
+               'word_highlight': 'off', 'font_size': '14', 'show_hints': 'false', 'show_footer': 'true', 'cursor': '▎', 'icons': 'true'},
     'playback': {'source': 'native', 'player': 'spotify', 'fps': '180',
                  'sync_offset': '0', 'type_ahead': '0.10', 'typing_mode': 'smooth'},
     'pages': {'mode': 'dynamic', 'min_lines': '2', 'max_lines': '6',
               'target_seconds': '12', 'pause_seconds': '2'},
     'visualizer': {'mode': 'auto', 'style': 'bars', 'width': '32', 'width_percent': '85', 'bottom_margin': '1', 'height': '3',
-                   'show_label': 'false', 'only_gaps': 'false', 'input': 'auto', 'sensitivity': '100'},
+                   'smoothing_ms': '120', 'show_label': 'false', 'only_gaps': 'false', 'input': 'auto', 'sensitivity': '100'},
     'theme': {'mode': 'static'},
     'colors': {'text': '#DEDAD0', 'muted': '#88867F', 'accent': '#C8BA91',
                'border': '#69675E', 'background': 'default'},
@@ -103,7 +103,7 @@ class Settings:
                     raise ValueError(name)
             for name in ('border', 'show_progress', 'show_source', 'show_footer', 'show_hints', 'icons'):
                 parser.getboolean('layout', name)
-            choices = {('theme', 'mode'): ('static', 'dynamic'),
+            choices = {('layout', 'word_highlight'): ('off', 'bold-beta'),('theme', 'mode'): ('static', 'dynamic'),
                        ('playback', 'typing_mode'): ('smooth', 'words-beta'),('playback', 'source'): ('native', 'auto', 'spicy'),
                        ('pages', 'mode'): ('dynamic', 'fixed'),
                        ('visualizer', 'mode'): ('auto', 'spectrum', 'activity', 'off'),
@@ -113,6 +113,7 @@ class Settings:
                 if parser[section][name] not in allowed:
                     raise ValueError(name)
             for section, name, low, high in (
+                ('layout', 'font_size', 6, 48), ('visualizer', 'smoothing_ms', 0, 500),
                 ('playback', 'fps', 15, 240), ('pages', 'min_lines', 1, 16),
                 ('pages', 'max_lines', 1, 16), ('visualizer', 'width', 8, 100),
                 ('visualizer', 'width_percent', 0, 100), ('visualizer', 'bottom_margin', 0, 8),
@@ -157,6 +158,8 @@ class TerminalUI:
         self.frame_rows = None
 
     def color(self, name):
+        if name == 'word':
+            return '\033[1m' + self.color('accent')
         if self.settings.values['theme']['mode'] == 'dynamic':
             # Indexed colors follow the terminal palette updated by Noctalia.
             return {'text': '\033[39m', 'muted': '\033[90m',
@@ -264,26 +267,41 @@ class TerminalUI:
             # Reserve full phrase geometry: centering must not move on each keystroke.
             segments = chunks(full, wrap_width)
             remaining = len(visible)
+            word_span = None
+            if layout['word_highlight'] == 'bold-beta' and not gap and not help_open and i == len(visible_rows)-1:
+                matches = list(re.finditer(r'\S+', visible))
+                if matches:
+                    word_span = matches[-1].span()
+            segment_start = 0
             for j, segment in enumerate(segments):
                 count = min(len(segment), max(0, remaining))
                 fragment = segment[:count]
                 at_cursor = cursor and 0 <= remaining <= len(segment) and (remaining > 0 or j == 0)
                 if at_cursor:
                     fragment += layout['cursor']
-                prepared.append((fragment, min(wrap_width, cells(segment) + cells(layout['cursor'])), i == len(visible_rows)-1))
+                highlight = None
+                if word_span:
+                    lo, hi = max(0, word_span[0]-segment_start), min(count, word_span[1]-segment_start)
+                    if hi > lo:
+                        highlight = (lo, hi)
+                prepared.append((fragment, min(wrap_width, cells(segment) + cells(layout['cursor'])), i == len(visible_rows)-1, highlight))
+                segment_start += len(segment)
                 remaining -= len(segment)
             if i + 1 < len(visible_rows):
-                prepared.extend([('', 0, False)] * int(layout['line_spacing']))
+                prepared.extend([('', 0, False, None)] * int(layout['line_spacing']))
         if len(prepared) > room:
             visible_end = max((i + 1 for i, row in enumerate(prepared) if row[0]), default=1)
             window_start = max(0, visible_end - room)
             prepared = prepared[window_start:window_start + room]
         offset = max(0, room - len(prepared))
         start_y = content_top + (offset // 2 if layout['vertical'] == 'center' else offset if layout['vertical'] == 'bottom' else 0)
-        for y, (text, full_width, active) in enumerate(prepared, start_y):
+        for y, (text, full_width, active, highlight) in enumerate(prepared, start_y):
             free = max(0, usable - full_width)
             x = left + (free // 2 if layout['alignment'] == 'center' else free if layout['alignment'] == 'right' else 0)
             put(y, x, crop(text, usable - (x-left)), 'accent' if active else 'text')
+            if highlight:
+                lo, hi = highlight
+                put(y, x + cells(text[:lo]), text[lo:hi], 'word')
         if visual_room:
             percent = int(self.settings.values['visualizer']['width_percent'])
             target = max(1, int(usable * percent / 100))
@@ -307,7 +325,7 @@ class TerminalUI:
             parts, previous = [self.color('background')], None
             for c, style in zip(row, style_row):
                 if style != previous:
-                    parts.append(self.color(style))
+                    parts.append('\033[22m' + self.color(style))
                     previous = style
                 parts.append(c)
             rows.append(''.join(parts) + '\033[0m')

@@ -1,3 +1,9 @@
+# 0.6.3
+
+Time-based spectrum smoothing and fractional-height bars. Optional estimated
+word highlight in bold, preserving wrapping and alignment. Kitty font-size
+launcher with saved preferences; no global terminal configuration changes.
+
 # 0.6.2
 
 Animated characters within words-beta, with short holds that fit the line timeline.

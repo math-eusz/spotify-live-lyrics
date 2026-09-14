@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     paths:
+      - '**.py'
+      - ui.ini
       - releases/manifest.json
       - .github/workflows/publish-history.yml
   workflow_dispatch:

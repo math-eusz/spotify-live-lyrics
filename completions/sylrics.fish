@@ -1,5 +1,5 @@
 complete -c sylrics -f
-complete -c sylrics -n '__fish_use_subcommand' -a 'play demo config theme typing source visualizer control doctor cache bridge' -d 'sylrics command'
+complete -c sylrics -n '__fish_use_subcommand' -a 'play demo config theme typing highlight font source visualizer control doctor cache bridge' -d 'sylrics command'
 complete -c sylrics -l source -xa 'native auto spicy' -d 'Lyric source'
 complete -c sylrics -l config -r -d 'Alternative INI file'
 complete -c sylrics -l version -d 'Version'
@@ -11,3 +11,5 @@ complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'playback.source
 complete -c sylrics -n '__fish_seen_subcommand_from typing' -a 'smooth words-beta'
 complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'theme.mode playback.typing_mode layout.show_hints visualizer.show_label'
 complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'visualizer.width_percent visualizer.bottom_margin'
+complete -c sylrics -n '__fish_seen_subcommand_from highlight' -a 'off bold-beta'
+complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'visualizer.smoothing_ms layout.word_highlight layout.font_size'

@@ -1,15 +1,15 @@
-# sylrics 0.6.2 — instalação e comandos
+# sylrics 0.6.3 — instalação e comandos
 
 O comando novo é **sylrics**. O antigo `slyrics` continua compatível.
 
 ## Instalar no seu PC
 
-Baixe **sylrics-0.6.2.tar.gz** na release 0.6.2 e salve em Downloads. Feche a versão anterior com Ctrl+C. No terminal:
+Baixe **sylrics-0.6.3.tar.gz** na release 0.6.3 e salve em Downloads. Feche a versão anterior com Ctrl+C. No terminal:
 
 ```fish
 cd ~/Downloads
-tar -xzf sylrics-0.6.2.tar.gz
-cd sylrics-0.6.2
+tar -xzf sylrics-0.6.3.tar.gz
+cd sylrics-0.6.3
 sh install.sh
 ```
 
@@ -76,7 +76,7 @@ Os atalhos valem só para a execução atual. Para salvar escolhas, use os coman
 
 A demonstração não depende do Spotify: `sylrics demo`. O diagnóstico é `sylrics doctor`.
 
-## Revisão 0.6.2
+## Revisão 0.6.3
 
 O tema dinâmico acompanha a **paleta do terminal**. Na configuração com Noctalia,
 que gera o tema do terminal a partir do papel de parede, isso permite acompanhar
@@ -115,7 +115,7 @@ No arquivo `ui.ini`, as opções correspondentes são `[theme] mode = dynamic`,
 `[playback] typing_mode = words-beta`. Comandos de configuração aplicam-se ao vivo,
 inclusive depois de usar atalhos temporários. A instalação preserva suas escolhas.
 
-### Visualizador — 0.6.2
+### Visualizador — 0.6.3
 
 O visualizador ocupa 85% da largura útil e deixa uma linha de margem inferior.
 A largura acompanha o redimensionamento da janela; os dados de áudio não mudam.
@@ -128,3 +128,31 @@ sylrics config set visualizer.bottom_margin 1
 
 `width_percent` aceita 0 a 100; 0 restaura a largura fixa de `visualizer.width`.
 `bottom_margin` aceita 0 a 8 linhas. A borda e os avisos visíveis são respeitados.
+
+## 0.6.3 — Suavização, fonte e destaque beta
+
+O visualizador usa resposta suave baseada no tempo e oito níveis por célula.
+A suavização padrão é 120 ms; valores maiores deixam a queda mais lenta.
+Zero desativa o filtro. A pausa da reprodução zera as barras imediatamente.
+
+```sh
+sylrics config set visualizer.smoothing_ms 120
+sylrics highlight bold-beta
+sylrics highlight off
+sylrics font 18
+```
+
+O destaque beta coloca em negrito a parte visível da palavra em digitação,
+funciona com `smooth` e `words-beta`, e desaparece nos intervalos vocais.
+É uma indicação estimada pela animação, não uma medição da voz.
+
+`sylrics font 18` abre uma nova janela **Kitty**, com 18 pontos para toda a
+interface, e salva o tamanho. Feche a janela antiga se não quiser duas instâncias.
+`sylrics font` reutiliza o tamanho salvo (padrão: 14). Aceita de 6 a 48 pontos.
+Não altera kitty.conf nem muda a fonte de um terminal já aberto. Em outros
+terminais, use o zoom do terminal. A opção INI é `layout.font_size`.
+Referência: [opções do Kitty](https://sw.kovidgoyal.net/kitty/invocation/).
+
+As opções novas também estão no arquivo INI: `layout.word_highlight = off`
+e `visualizer.smoothing_ms = 120`. O destaque começa desativado; as demais
+preferências existentes são preservadas.
