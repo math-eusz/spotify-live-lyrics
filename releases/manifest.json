@@ -81,6 +81,18 @@
       "QUICKSTART.pt-BR.md"
     ],
     "source_bundle": true,
+    "latest": false
+  },
+  {
+    "tag": "v0.6.1",
+    "commit": "4ce1ec60b7fd47648c9dd078b201db368d764fa0",
+    "title": "v0.6.1 \u2014 Refined interface, dynamic theme and word reveal beta",
+    "notes": "releases/notes/v0.6.1.md",
+    "assets": [
+      "ui.ini",
+      "QUICKSTART.pt-BR.md"
+    ],
+    "source_bundle": true,
     "latest": true
   }
 ]
