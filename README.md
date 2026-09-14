@@ -20,12 +20,6 @@ The installer creates real executables in `~/.local/bin`, backs up previous runt
 
 On Arch/CachyOS, the native dependency is available through `sudo pacman -S playerctl`. Install CAVA separately if you want real audio bars.
 
-### AUR status
-
-**The package is prepared, but has not been submitted to the AUR. `yay -S sylrics` is not an available installation route yet.** This repository is private, so its source URL is not accessible to arbitrary AUR users. Public source access and an AUR maintainer account with SSH authorization are still required. The project does not change repository visibility or create an AUR account automatically.
-
-The release includes `sylrics-0.6.0-aur.tar.gz` with a `PKGBUILD`, `.SRCINFO` and a checksum tied to the exact source archive. To build locally on Arch/CachyOS, extract that recipe into a directory, put the matching source archive beside `PKGBUILD`, review it, and run `makepkg -si` as a normal user. This installs `/usr/bin/sylrics`, the compatibility `slyrics` command and shell completions. Recipe staging and archive integrity are tested; a full `makepkg` build must run on Arch.
-
 ## Choose a lyrics source
 
 | Command | Behavior |
@@ -137,6 +131,6 @@ These are synchronized lyric displays, not speech recognition. Incorrect source 
 
 The previous state is preserved in `backup/before-v0.6.0` and release `v0.5.0`. The installer keeps overwritten runtime files under `~/.local/share/spotify-live-lyrics/backup/before-0.6.0-*`. Historical standalone Python installers remain downloadable from their original releases; they are no longer active installers in this source tree.
 
-Run `python -m unittest discover -s tests -v`. The release workflow validates the project, builds source/AUR archives from exact commits, publishes checksums and never moves existing release tags. See [CHANGELOG.md](CHANGELOG.md).
+Run `python -m unittest discover -s tests -v`. The release workflow validates the project, builds source archives from exact commits, publishes checksums and never moves existing release tags. See [CHANGELOG.md](CHANGELOG.md).
 
-Protocol references: [LRCLIB](https://lrclib.net/docs), [CAVA configuration](https://github.com/karlstav/cava/blob/master/example_files/config), [Spicy Lyrics cache](https://github.com/Spikerko/spicy-lyrics/blob/main/src/modules/Store.ts), [AUR submission guidelines](https://wiki.archlinux.org/title/AUR_submission_guidelines).
+Protocol references: [LRCLIB](https://lrclib.net/docs), [CAVA configuration](https://github.com/karlstav/cava/blob/master/example_files/config), [Spicy Lyrics cache](https://github.com/Spikerko/spicy-lyrics/blob/main/src/modules/Store.ts).

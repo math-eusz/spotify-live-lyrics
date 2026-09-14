@@ -74,10 +74,4 @@ As páginas são dinâmicas, limitadas inicialmente a 6 frases. Frases rápidas 
 
 Os atalhos valem só para a execução atual. Para salvar escolhas, use os comandos `config`, `source`, `visualizer` ou `theme`.
 
-## AUR / yay
-
-A receita do pacote está pronta na release, mas **ainda não foi publicada no AUR**. `yay -S sylrics` ainda não funciona como rota de instalação do nosso projeto. O repositório está privado: falta disponibilizar o código publicamente e enviar a receita por uma conta de mantenedor do AUR.
-
-Para testar o pacote local no Arch, baixe também `sylrics-0.6.0-aur.tar.gz`. Extraia a receita numa pasta, coloque o arquivo de código `sylrics-0.6.0.tar.gz` na mesma pasta do PKGBUILD e execute `makepkg -si` com seu usuário normal. O checksum da receita corresponde ao arquivo da release.
-
 A demonstração não depende do Spotify: `sylrics demo`. O diagnóstico é `sylrics doctor`.
