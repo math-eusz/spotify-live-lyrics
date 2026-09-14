@@ -93,6 +93,18 @@
       "QUICKSTART.pt-BR.md"
     ],
     "source_bundle": true,
+    "latest": false
+  },
+  {
+    "tag": "v0.6.2",
+    "commit": "4cc9b4e4d5df96e3a00b7247cbe84aa11a6b5457",
+    "title": "v0.6.2 \u2014 Animated words and a wider visualizer",
+    "notes": "releases/notes/v0.6.2.md",
+    "assets": [
+      "ui.ini",
+      "QUICKSTART.pt-BR.md"
+    ],
+    "source_bundle": true,
     "latest": true
   }
 ]
