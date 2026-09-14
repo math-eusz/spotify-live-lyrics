@@ -13,9 +13,9 @@ class Releases(unittest.TestCase):
     def test_all_snapshots_validated_and_assets_checksummed(self):
         with patch.object(pub.subprocess, 'check_output', return_value=b'print("historical snapshot")\n') as git:
             prepared = pub.prepare()
-        self.assertEqual(len(prepared), 10)
+        self.assertEqual(len(prepared), 11)
         self.assertEqual(sum(r[0]['latest'] for r in prepared), 1)
-        self.assertEqual(prepared[-1][0]['tag'], 'v0.6.2')
+        self.assertEqual(prepared[-1][0]['tag'], 'v0.6.3')
         self.assertTrue(all('SHA256SUMS.txt' in assets for _, _, assets in prepared))
         self.assertTrue(all(len(c.args[0][-1].split(':')[0]) == 40 for c in git.call_args_list))
 
