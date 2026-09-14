@@ -117,6 +117,18 @@
       "QUICKSTART.pt-BR.md"
     ],
     "source_bundle": true,
+    "latest": false
+  },
+  {
+    "tag": "v0.6.4",
+    "commit": "bb1931ef78ef0874253290b11ce41d23c7aad2a7",
+    "title": "v0.6.4 — Organized lyrics and automatic ten-file retention",
+    "notes": "releases/notes/v0.6.4.md",
+    "assets": [
+      "ui.ini",
+      "QUICKSTART.pt-BR.md"
+    ],
+    "source_bundle": true,
     "latest": true
   }
 ]
