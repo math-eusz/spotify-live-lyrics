@@ -142,6 +142,19 @@
       "COMMANDS.pt-BR.md"
     ],
     "source_bundle": true,
+    "latest": false
+  },
+  {
+    "tag": "v0.7.1",
+    "commit": "1c6ceb97ca15355e97fe3cd8ab7a01c41f4e9318",
+    "title": "v0.7.1 \u2014 Solid spectrum, animated vocal gaps and clearer lyrics",
+    "notes": "releases/notes/v0.7.1.md",
+    "assets": [
+      "ui.ini",
+      "QUICKSTART.pt-BR.md",
+      "COMMANDS.pt-BR.md"
+    ],
+    "source_bundle": true,
     "latest": true
   }
 ]
