@@ -1,0 +1,14 @@
+pkgbase = sylrics
+	pkgdesc = Customizable terminal lyrics and audio visualizer with optional Spicy Lyrics integration
+	pkgver = 0.6.0
+	pkgrel = 1
+	url = https://github.com/math-eusz/spotify-live-lyrics
+	arch = any
+	license = MIT
+	depends = python
+	depends = playerctl
+	optdepends = cava: real-time system audio spectrum
+	source = sylrics-0.6.0.tar.gz::https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.6.0/sylrics-0.6.0.tar.gz
+	sha256sums = @SOURCE_SHA256@
+
+pkgname = sylrics

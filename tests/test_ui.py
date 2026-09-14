@@ -62,14 +62,6 @@ class Interface(unittest.TestCase):
                      anchor='Hello ' * 100, size=(30, 10)))
         self.assertIn('Hello▎', '\n'.join(rows))
 
-    def test_release_installer_embeds_all_current_sources(self):
-        import runpy
-        root = Path(__file__).resolve().parents[1]
-        payload = runpy.run_path(str(root / 'install_slyrics_interface_v4.py'))['FILES']
-        for name in ('lyrics.py', 'spicy_bridge.py', 'terminal_ui.py', 'ui.ini',
-                     'slyrics-bridge.js', 'install.py'):
-            self.assertEqual(payload[name], (root / name).read_text())
-
     def test_unchanged_frame_writes_nothing(self):
         ui = TerminalUI(Settings('/nonexistent'))
         with patch('terminal_ui.sys.stdout.write') as write, patch('terminal_ui.sys.stdout.flush'):

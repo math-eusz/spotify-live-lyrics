@@ -1,95 +1,142 @@
-# Spotify Live Lyrics
+# sylrics · 0.6.0
 
-Real-time lyrics in the Linux terminal, using timing data already loaded by **Spicy Lyrics** in Spotify. Displays four vocal lines per page, keeps the fourth until the next phrase starts, and separates vocal gaps of at least two seconds.
+Live terminal lyrics, a configurable audio visualizer, and pages that follow phrase cadence. Native mode works without Spicetify or Spicy Lyrics.
+
+The command is **`sylrics`**. The previous spelling, `slyrics`, remains a compatibility alias. [Português: instalação e comandos](QUICKSTART.pt-BR.md).
 
 ## Install
 
-Requires Python 3, Spicetify and the Spicy Lyrics extension installed and working in Spotify. Download `install_spicy_bridge.py` and run:
+Requires Linux, Python **3.10+**, and `playerctl` for native playback. `cava` is optional for real audio visualization. `syncedlyrics` is optional: if present, its existing search is tried first; otherwise the built-in LRCLIB client fetches synchronized lyrics directly. An internet connection is needed for uncached lyrics.
+
+Download `sylrics-0.6.0.tar.gz` from the [0.6.0 release](https://github.com/math-eusz/spotify-live-lyrics/releases/tag/v0.6.0), then run:
 
 ```sh
-python ~/Downloads/install_spicy_bridge.py
+tar -xzf sylrics-0.6.0.tar.gz
+cd sylrics-0.6.0
+sh install.sh
 ```
 
-Alternatively, download or clone this repository and run `python install.py` in its directory.
+The installer creates real executables in `~/.local/bin`, backs up previous runtime files, preserves your bridge credentials, migrates appearance settings and installs Fish completions. It does not run Spicetify. Open a new terminal and run `sylrics`. In the current terminal, `~/.local/bin/sylrics` always names the installed executable directly. Bash/Zsh users must have `~/.local/bin` on their PATH. Existing Fish aliases may shadow `slyrics`; the new `sylrics` command avoids that old alias.
 
-The installer backs up previous project files, the existing bridge extension and Spicetify configuration under `~/.local/share/spotify-live-lyrics/backup/`. It installs a small companion extension, appends it to your enabled extensions and runs `spicetify apply`, which can restart Spotify. It does not replace Spicy Lyrics.
+On Arch/CachyOS, the native dependency is available through `sudo pacman -S playerctl`. Install CAVA separately if you want real audio bars.
 
-Open a song's lyrics in Spicy Lyrics so that it loads and caches them. Then run:
+### AUR status
 
-```sh
-python ~/.local/share/spotify-live-lyrics/lyrics.py
-```
+**The package is prepared, but has not been submitted to the AUR. `yay -S sylrics` is not an available installation route yet.** This repository is private, so its source URL is not accessible to arbitrary AUR users. Public source access and an AUR maintainer account with SSH authorization are still required. The project does not change repository visibility or create an AUR account automatically.
 
-Your existing `slyrics` alias still works. Press Ctrl+C to exit. The terminal reports whether the data contains syllable timings or only line timings. If Spicy Lyrics has no usable timing data (including static, empty or unsupported lyrics), syncedlyrics is queried automatically in the background. Install the same syncedlyrics command used by the previous version. Successful results are cached per track; failed searches retry after 60 seconds. Late results cannot replace another track’s lyrics. Spicy Lyrics takes priority again when timed lyrics arrive.
+The release includes `sylrics-0.6.0-aur.tar.gz` with a `PKGBUILD`, `.SRCINFO` and a checksum tied to the exact source archive. To build locally on Arch/CachyOS, extract that recipe into a directory, put the matching source archive beside `PKGBUILD`, review it, and run `makepkg -si` as a normal user. This installs `/usr/bin/sylrics`, the compatibility `slyrics` command and shell completions. Recipe staging and archive integrity are tested; a full `makepkg` build must run on Arch.
 
-## Customizable terminal interface
+## Choose a lyrics source
 
-Download `install_slyrics_interface_v4.py` for this release and run `python ~/Downloads/install_slyrics_interface_v4.py`. Close any running slyrics process first. The installer updates the companion extension to send track duration and applies Spicetify (Spotify may restart). It backs up the old code and preserves your appearance settings.
-
-The default interface has a warm neutral palette, a thin rounded terminal border, title/artist, playback status, elapsed/total time, a progress bar, and centered lyrics. It preserves the four-line pages, continuous typewriter timing and automatic syncedlyrics fallback. Lines are positioned using their complete text, so centering does not slide on every character. Long lyrics wrap within the available width; terminal resizing is handled live. Only changed terminal rows are rewritten.
-
-Edit your appearance settings:
-
-```sh
-nano ~/.config/spotify-live-lyrics/ui.ini
-```
-
-If `XDG_CONFIG_HOME` is set, use `$XDG_CONFIG_HOME/spotify-live-lyrics/ui.ini` instead. Save changes to apply within about half a second, without restarting. Invalid edits retain the last valid appearance and display a footer message.
-
-| Setting in `[layout]` | Values / effect |
+| Command | Behavior |
 | --- | --- |
-| `alignment` | `left`, `center`, `right` |
-| `vertical` | `top`, `center`, `bottom` |
-| `padding` | Side margin, 0–20 terminal cells |
-| `line_spacing` | Blank rows between phrases, 0–4 |
-| `lyrics_width` | Maximum lyric width, 10–240 cells |
-| `border` | `true` / `false` |
-| `show_progress` | Show elapsed time, bar and duration |
-| `show_source` | Show lyric source in the footer |
-| `show_footer` | Show or hide the entire footer |
-| `cursor` | Typewriter cursor, e.g. `▎`, `█`, or empty |
+| `sylrics` | Open with saved settings; native is the default |
+| `sylrics --source native` | Native playback and lyrics only for this session |
+| `sylrics --source auto` | Prefer matching timed Spicy Lyrics data, otherwise native |
+| `sylrics --source spicy` | Use the optional bridge clock; untimed lyrics still use native fallback |
+| `sylrics source native` | Save native as the default; applies live |
+| `sylrics bridge install` | Explicitly install/configure the optional Spicetify bridge |
+| `sylrics bridge status` | Check whether the bridge has been configured |
 
-`[colors]` accepts `#RRGGBB` or `default` for `text`, `muted`, `accent`, `border`, and `background`. The default background follows your terminal, including its transparency. Font size and blur remain terminal settings. The progress bar is a display, not a seek control. Unknown duration is shown as `--:--`, never guessed.
+For bridge mode, install Spicetify and Spicy Lyrics yourself first, run `sylrics bridge install`, then restart sylrics in `auto` or `spicy` mode. That explicit command backs up Spicetify configuration, installs the companion extension and applies Spicetify; Spotify may restart. Open lyrics in Spicy Lyrics to populate its cache. Native mode never starts the loopback server or reads the bridge cache.
 
-## How it works
+A configured bridge listens only on `127.0.0.1:43829`, checks the origin and an installation-specific key, and reads only the current track's Spicy Lyrics cache. It does not request Spotify account tokens. The new key lives under `~/.config/spotify-live-lyrics/bridge-config.json`; an older installation key is also recognized.
 
-`slyrics-bridge.js` reads **only the current track** from Cache Storage entries whose names begin with `SpicyLyrics_LyricsStore`. It sends the lyrics and the Spicetify player's current position to a Python listener at `127.0.0.1:43829`. It does not request account tokens, intercept requests, query a lyrics API, or read unrelated caches. The per-install local bridge key is stored outside git.
+## Dynamic pages
 
-`spicy_bridge.py` supports the `Syllable` and `Line` data structures. The previous continuous weighted typewriter animation is restored for both sources. Spicy Lyrics supplies phrase start/end times (from the first/last syllable when available); character progression is estimated continuously across that phrase, rather than stopping on each syllable. The bridge shows lead vocals; simultaneous backing vocals are not displayed.
+Dynamic mode groups lyrics by timestamp gaps and phrase cadence. Fast phrases can remain together up to the cap; slower phrases form shorter pages around the target duration. A pause of at least two seconds can end a page after just one phrase. The next page starts only at the next phrase's timestamp, independent of typing anticipation.
 
-The default `TYPE_AHEAD = 0.10` advances character progress by 100 ms. Page selection uses the unshifted playback position, so anticipation cannot clear page four before the next phrase starts. `LINES_PER_BLOCK = 4`, `PAUSE_SECONDS = 2.0` and `FPS = 180` can be adjusted at the top of `spicy_bridge.py`. The visual loop targets 180 iterations per second and writes only when the display changes; real display refresh depends on the terminal.
-
-The bridge samples player state roughly every 100 ms. Python interpolates briefly between updates, freezes on pause and shows a disconnected message after three seconds without contact. Lyrics are resent periodically, allowing the terminal to restart independently. A track change clears the old track's lyrics.
-
-## Compatibility and limits
-
-This bridge is based on Spicy Lyrics' current cache envelope (`Content`, `ExpiresAt`) and `Syllable`/`Line` schemas. A future extension update may require adapting the bridge. Lyrics must have been loaded by Spicy Lyrics; the bridge does not start a lyrics search itself. Custom local-only TTML storage is not supported. Browser restrictions on localhost requests can also affect the live integration.
-
-Tests cover real JavaScript-to-Python loopback transport with a mocked Spicetify player/cache, phrase timing, automatic fallback, continuous animation, instrumental intros, four-line page boundaries, pauses, seek behavior, stale track data, request validation and installer backups. They do **not** establish that it works inside your particular Spotify/Spicetify installation; that needs a live test on your PC.
-
-## Previous source
-
-The previous playerctl/syncedlyrics implementation remains available explicitly:
+The default is **up to six vocal lines**, at least two before a duration-based break, and a target of 12 seconds. The hard cap is adjustable from 1 to 16. Blank separators and wrapped screen rows do not count as vocal lines. Small terminal windows show the active portion when all lines cannot fit.
 
 ```sh
-python ~/.local/share/spotify-live-lyrics/lyrics.py --legacy
+sylrics config set pages.max_lines 8
+sylrics config set pages.target_seconds 15
+sylrics config set pages.pause_seconds 2.5
 ```
 
-That mode still estimates character timing from LRC lines and inherits inaccurate source timestamps. This same parser and renderer are now used automatically when Spicy Lyrics lacks usable timings. The fallback uses the bridge’s Spotify clock; --legacy also replaces the bridge clock with playerctl.
-
-## Remove the companion extension
+To recreate four-line pages:
 
 ```sh
-spicetify config extensions slyrics-bridge.js-
-spicetify apply
+sylrics config set pages.mode fixed
+sylrics config set pages.max_lines 4
 ```
 
-Use `--legacy` or restore `lyrics.py` from your timestamped backup if you want the previous terminal behavior.
+This uses lyric timing, **not mood, musical key, BPM analysis or voice separation**. LRC-only pause estimates depend on the lyric source. Spicy Lyrics can supply real phrase end times. The weighted continuous typewriter effect and 100 ms anticipation are preserved.
 
-## Development
+## Visualizer
 
-Run `python -m unittest discover -s tests -v` with Node.js available for the transport test. The installable standalone script embeds `lyrics.py`, `spicy_bridge.py`, `slyrics-bridge.js`, `terminal_ui.py`, `ui.ini` and `install.py`; regenerate it with `python build_installer.py` after changes.
+| Mode | Meaning |
+| --- | --- |
+| `auto` | Real CAVA spectrum when available; clearly labeled animation otherwise |
+| `spectrum` | Require real audio data; show an unavailable message if capture fails |
+| `activity` | Decorative playback animation, not an audio measurement |
+| `off` | Hide the visualizer and stop its CAVA process |
 
-## Protocol references
+```sh
+sylrics visualizer auto
+sylrics config set visualizer.style wave
+sylrics config set visualizer.width 40
+sylrics config set visualizer.height 3
+sylrics config set visualizer.only_gaps true
+```
 
-This project implements its own companion extension and renderer. The protocol was inspected in [Spicy Lyrics cache storage](https://github.com/Spikerko/spicy-lyrics/blob/main/src/modules/Store.ts), [lyrics fetch/cache](https://github.com/Spikerko/spicy-lyrics/blob/main/src/utils/Lyrics/fetchLyrics.ts) and [syllable rendering](https://github.com/Spikerko/spicy-lyrics/blob/main/src/utils/Lyrics/Applyer/Synced/Syllable.ts). Extension installation follows the [Spicetify documentation](https://spicetify.app/docs/customization/extensions).
+Styles are `bars`, `wave` and `dots`. CAVA monitors the system's default audio output; it does not isolate Spotify, classify a guitar, or detect a vocalist. The “intervalo vocal” label comes from lyric timestamps and can be estimated. Capture input can be `auto`, `pipewire` or `pulse`. Pausing freezes decorative motion and zeroes the bars. Real silent audio remains silent visually. Only-gap mode reserves visualizer space to keep the lyrics from jumping.
+
+## Customize by file or command
+
+```sh
+sylrics config edit
+sylrics config list
+sylrics config get layout.alignment
+sylrics config set layout.alignment left
+sylrics config set layout.show_source false
+sylrics theme purple
+```
+
+The lower-left source label is **off by default**, including migration from 0.5.0. Enable it with `sylrics config set layout.show_source true`. `layout.show_footer` controls the entire footer separately.
+
+The file remains `~/.config/spotify-live-lyrics/ui.ini`, or `$XDG_CONFIG_HOME/spotify-live-lyrics/ui.ini`. Use `sylrics --config /path/ui.ini` for a separate profile. Saved changes reload within about half a second. Invalid values retain the last valid visual state. CLI edits are validated before an atomic replacement and keep up to 20 configuration backups. Session keyboard adjustments take precedence until the program exits.
+
+| Section | Keys and values |
+| --- | --- |
+| `playback` | `source`: native/auto/spicy; `player`: MPRIS player name; `fps`: 15–240; `sync_offset`: -10–10 seconds; `type_ahead`: 0–0.5 seconds |
+| `pages` | `mode`: dynamic/fixed; `min_lines`, `max_lines`: 1–16 with min ≤ max; `target_seconds`: 2–60; `pause_seconds`: 0.5–10 |
+| `layout` | `alignment`: left/center/right; `vertical`: top/center/bottom; `padding`: 0–20; `line_spacing`: 0–4; `lyrics_width`: 10–240 |
+| `layout` toggles | `border`, `icons`, `show_progress`, `show_source`, `show_footer`: true/false; `cursor`: short text or empty |
+| `visualizer` | `mode`, `style`; `width`: 8–100; `height`: 1–6; `only_gaps`: true/false; `input`: auto/pipewire/pulse; `sensitivity`: 10–500 |
+| `colors` | `text`, `muted`, `accent`, `border`, `background`: `#RRGGBB` or `default` |
+
+Themes: `warm`, `purple`, `mono`, `ocean`. The default background inherits terminal transparency. Font size, blur and window decorations are controlled by your terminal. Unicode icons do not require a Nerd Font. The visual loop targets 180 FPS by default; display refresh depends on the terminal, font and hardware.
+
+## Command library
+
+| Command | Purpose |
+| --- | --- |
+| `sylrics play` | Start playback view |
+| `sylrics demo` | Interactive preview without a music player |
+| `sylrics source native` | Save the default source |
+| `sylrics visualizer off` | Save the visualizer mode |
+| `sylrics config path/list/get/set/edit` | Locate, inspect or edit configuration |
+| `sylrics theme warm` | Apply a color preset with backup |
+| `sylrics control play-pause` | Toggle playback through playerctl |
+| `sylrics control next` / `previous` | Change tracks |
+| `sylrics cache info` / `clear` | Inspect or remove cached LRC files |
+| `sylrics doctor` | Report dependencies and configuration status |
+| `sylrics bridge status` / `install` | Manage optional bridge integration |
+| `sylrics --version` / `--help` | Version and command help |
+
+During playback: `q` or Ctrl+C exits; Space toggles playback; `n`/`p` switch tracks; `v` cycles visualizers; `s` toggles source information; `a` cycles alignment; `+`/`-` adjust synchronization by 50 ms; `?` shows help. Shortcuts are session-only. Player-control shortcuts require playerctl, even when using the bridge.
+
+## Reliability and limits
+
+Player queries, lyric lookups and audio reading run outside the render loop. Successful lyrics are cached under `$XDG_CACHE_HOME/sylrics/lyrics` (normally `~/.cache/sylrics/lyrics`) for seven days, with a 64-file cap. Failed lookups retry after 60 seconds. Results are keyed by track; an old result cannot replace another song. Small playback-clock jitter is smoothed, while seeks and pause changes apply immediately.
+
+These are synchronized lyric displays, not speech recognition. Incorrect source timestamps and alternate song versions can still produce incorrect timing. Live Spotify, PipeWire/PulseAudio and CAVA capture must be checked on your actual computer. Automated tests use fixture player/cache/audio processes and a real pseudo-terminal; they do not claim to hear your music.
+
+## Backups and development
+
+The previous state is preserved in `backup/before-v0.6.0` and release `v0.5.0`. The installer keeps overwritten runtime files under `~/.local/share/spotify-live-lyrics/backup/before-0.6.0-*`. Historical standalone Python installers remain downloadable from their original releases; they are no longer active installers in this source tree.
+
+Run `python -m unittest discover -s tests -v`. The release workflow validates the project, builds source/AUR archives from exact commits, publishes checksums and never moves existing release tags. See [CHANGELOG.md](CHANGELOG.md).
+
+Protocol references: [LRCLIB](https://lrclib.net/docs), [CAVA configuration](https://github.com/karlstav/cava/blob/master/example_files/config), [Spicy Lyrics cache](https://github.com/Spikerko/spicy-lyrics/blob/main/src/modules/Store.ts), [AUR submission guidelines](https://wiki.archlinux.org/title/AUR_submission_guidelines).

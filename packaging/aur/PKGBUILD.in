@@ -1,0 +1,26 @@
+# Maintainer: math-eusz
+pkgname=sylrics
+pkgver=0.6.0
+pkgrel=1
+pkgdesc='Customizable terminal lyrics and audio visualizer with optional Spicy Lyrics integration'
+arch=('any')
+url='https://github.com/math-eusz/spotify-live-lyrics'
+license=('MIT')
+depends=('python' 'playerctl')
+optdepends=('cava: real-time system audio spectrum')
+source=("$pkgname-$pkgver.tar.gz::$url/releases/download/v$pkgver/$pkgname-$pkgver.tar.gz")
+sha256sums=('@SOURCE_SHA256@')
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+  install -dm755 "$pkgdir/usr/lib/sylrics"
+  for file in app.py cli.py lyrics.py spicy_bridge.py terminal_ui.py preferences.py paging.py sources.py visualizer.py bridge_runtime.py install_bridge.py slyrics-bridge.js ui.ini; do
+    install -m644 "$file" "$pkgdir/usr/lib/sylrics/$file"
+  done
+  install -Dm755 bin/sylrics "$pkgdir/usr/bin/sylrics"
+  ln -s sylrics "$pkgdir/usr/bin/slyrics"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+  install -Dm644 completions/sylrics.fish "$pkgdir/usr/share/fish/vendor_completions.d/sylrics.fish"
+  install -Dm644 completions/sylrics.bash "$pkgdir/usr/share/bash-completion/completions/sylrics"
+}

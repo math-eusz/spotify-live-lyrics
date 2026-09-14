@@ -33,6 +33,11 @@ def prepare(root=ROOT):
             raise ValueError('Notes outside repository')
         body = note.read_text(encoding='utf-8')
         assets = {}
+        if item.get('source_bundle'):
+            import sys
+            sys.path.insert(0, str(root / 'releases'))
+            from artifacts import build
+            assets.update(build(root, commit, tag[1:]))
         for path in item['assets']:
             if '/' in path or path.startswith('.'):
                 raise ValueError('Assets must be top-level source files')
@@ -113,7 +118,7 @@ def main():
     parser.add_argument('--publish', action='store_true')
     args = parser.parse_args()
     prepared = prepare()
-    print(f'Validated {len(prepared)} complete historical snapshots.', flush=True)
+    print(f'Validated {len(prepared)} complete release snapshots.', flush=True)
     if args.publish:
         token = os.environ.get('GH_TOKEN')
         if not token:

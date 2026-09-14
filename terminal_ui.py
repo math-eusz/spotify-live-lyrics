@@ -11,8 +11,14 @@ import unicodedata
 DEFAULTS = {
     'layout': {'alignment': 'center', 'vertical': 'center', 'padding': '3',
                'line_spacing': '1', 'lyrics_width': '86', 'border': 'true',
-               'show_progress': 'true', 'show_source': 'true',
-               'show_footer': 'true', 'cursor': '▎'},
+               'show_progress': 'true', 'show_source': 'false',
+               'show_footer': 'true', 'cursor': '▎', 'icons': 'true'},
+    'playback': {'source': 'native', 'player': 'spotify', 'fps': '180',
+                 'sync_offset': '0', 'type_ahead': '0.10'},
+    'pages': {'mode': 'dynamic', 'min_lines': '2', 'max_lines': '6',
+              'target_seconds': '12', 'pause_seconds': '2'},
+    'visualizer': {'mode': 'auto', 'style': 'bars', 'width': '32', 'height': '3',
+                   'only_gaps': 'false', 'input': 'auto', 'sensitivity': '100'},
     'colors': {'text': '#DEDAD0', 'muted': '#88867F', 'accent': '#C8BA91',
                'border': '#69675E', 'background': 'default'},
 }
@@ -94,8 +100,32 @@ class Settings:
                                     ('lyrics_width', 10, 240)]:
                 if not low <= parser.getint('layout', name) <= high:
                     raise ValueError(name)
-            for name in ('border', 'show_progress', 'show_source', 'show_footer'):
+            for name in ('border', 'show_progress', 'show_source', 'show_footer', 'icons'):
                 parser.getboolean('layout', name)
+            choices = {('playback', 'source'): ('native', 'auto', 'spicy'),
+                       ('pages', 'mode'): ('dynamic', 'fixed'),
+                       ('visualizer', 'mode'): ('auto', 'spectrum', 'activity', 'off'),
+                       ('visualizer', 'style'): ('bars', 'wave', 'dots'),
+                       ('visualizer', 'input'): ('auto', 'pipewire', 'pulse')}
+            for (section, name), allowed in choices.items():
+                if parser[section][name] not in allowed:
+                    raise ValueError(name)
+            for section, name, low, high in (
+                ('playback', 'fps', 15, 240), ('pages', 'min_lines', 1, 16),
+                ('pages', 'max_lines', 1, 16), ('visualizer', 'width', 8, 100),
+                ('visualizer', 'height', 1, 6), ('visualizer', 'sensitivity', 10, 500)):
+                if not low <= parser.getint(section, name) <= high:
+                    raise ValueError(name)
+            for section, name, low, high in (
+                ('playback', 'sync_offset', -10, 10), ('playback', 'type_ahead', 0, .5),
+                ('pages', 'target_seconds', 2, 60), ('pages', 'pause_seconds', .5, 10)):
+                if not low <= parser.getfloat(section, name) <= high:
+                    raise ValueError(name)
+            if parser.getint('pages', 'min_lines') > parser.getint('pages', 'max_lines'):
+                raise ValueError('min_lines > max_lines')
+            if not re.fullmatch(r'[\w.,-]+', parser['playback']['player']):
+                raise ValueError('player')
+            parser.getboolean('visualizer', 'only_gaps')
             cursor = parser['layout']['cursor']
             if safe(cursor) != cursor or cells(cursor) > 2:
                 raise ValueError('cursor')
@@ -130,7 +160,7 @@ class TerminalUI:
         return f'\033[{48 if name == "background" else 38};2;{r};{g};{b}m'
 
     def compose(self, artist, title, body, position=0, duration=0,
-                playing=True, source='', anchor=None, size=None):
+                playing=True, source='', anchor=None, size=None, visual=None, notice='', gap=False):
         self.settings.reload()
         width, height = size or shutil.get_terminal_size((100, 28))
         # Reserve the final column: writing it can cause terminal auto-wrap.
@@ -138,7 +168,7 @@ class TerminalUI:
         height = max(1, height)
         frame_key = (artist, title, body, int(position), int(duration),
                      int(width * min(1, max(0, position / duration))) if duration > 0 else 0,
-                     playing, source, anchor, width, height,
+                     playing, source, anchor, width, height, visual, notice, gap,
                      repr(self.settings.values), self.settings.error)
         if frame_key == self.frame_key:
             return self.frame_rows
@@ -174,7 +204,7 @@ class TerminalUI:
                 put(y, 0, '│', 'border')
                 put(y, width - 1, '│', 'border')
         header_y = edge + (1 if height >= 12 else 0)
-        state = 'TOCANDO' if playing else 'PAUSADO'
+        state = ('▶ TOCANDO' if playing else 'Ⅱ PAUSADO') if self.settings.flag('icons') else ('TOCANDO' if playing else 'PAUSADO')
         title_text = f'{title}  —  {artist}' if artist else title or 'slyrics'
         state_space = len(state) + 3 if usable >= 45 else 0
         put(header_y, left, truncate(title_text, usable - state_space))
@@ -196,6 +226,11 @@ class TerminalUI:
         footer_y = height - edge - 2
         footer = self.settings.flag('show_footer') and height >= 12
         content_bottom = footer_y - 1 if footer else height - edge - 1
+        visual = visual or ()
+        visual_room = len(visual) + 2 if visual and height >= 16 else 0
+        visual_y = content_bottom - len(visual) + 1
+        if visual_room:
+            content_bottom -= visual_room
         room = max(1, content_bottom - content_top + 1)
         wrap_width = min(usable, int(layout['lyrics_width']))
         visible_rows = body.split('\n')
@@ -228,9 +263,13 @@ class TerminalUI:
             free = max(0, usable - full_width)
             x = left + (free // 2 if layout['alignment'] == 'center' else free if layout['alignment'] == 'right' else 0)
             put(y, x, crop(text, usable - (x-left)), 'accent' if active else 'text')
+        if visual_room:
+            for y, row in enumerate(visual, visual_y):
+                row = crop(row, usable)
+                put(y, left + max(0, (usable - cells(row)) // 2), row, 'accent')
         if footer:
-            status = self.settings.error or (source if self.settings.flag('show_source') else '')
-            hint = 'Ctrl+C sair · ui.ini aparência'
+            status = self.settings.error or notice or (source if self.settings.flag('show_source') else '')
+            hint = 'q sair · espaço pausa · v visual · ? ajuda'
             if usable > len(hint) + 15:
                 put(footer_y, left, truncate(status, usable - len(hint) - 3), 'muted')
                 put(footer_y, left + usable - len(hint), hint, 'muted')

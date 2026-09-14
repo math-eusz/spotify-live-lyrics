@@ -13,7 +13,6 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import spicy_bridge as bridge
-import install
 
 
 def syllable(text, start, end, part=False):
@@ -117,48 +116,6 @@ class Timing(unittest.TestCase):
                 release.set()
                 fallback.stop.set()
                 fallback.thread.join(2)
-
-    def test_repair_replaces_old_installation_and_preserves_config(self):
-        import os
-        with tempfile.TemporaryDirectory() as temp:
-            target = Path(temp) / '.local/share/spotify-live-lyrics'
-            target.mkdir(parents=True)
-            (target / 'bridge-config.json').write_text('{"token":"unchanged"}')
-            (target / 'spicy_bridge.py').write_text('old bridge')
-            (target / 'lyrics.py').write_text('old entry point')
-            subprocess.run([sys.executable, str(ROOT / 'corrigir_slyrics_fallback_v3.py'),
-                            '--install-only'], env=dict(os.environ, HOME=temp),
-                           capture_output=True, text=True, check=True, timeout=5)
-            for name in ('lyrics.py', 'spicy_bridge.py'):
-                self.assertEqual((target / name).read_bytes(), (ROOT / name).read_bytes())
-            self.assertEqual(next((target / 'backup').glob('*/spicy_bridge.py')).read_text(),
-                             'old bridge')
-            self.assertEqual((target / 'bridge-config.json').read_text(), '{"token":"unchanged"}')
-
-    def test_installer_preserves_files_and_adds_extension(self):
-        with tempfile.TemporaryDirectory() as td:
-            home = Path(td)
-            config = home/'spicetify/config.ini'
-            config.parent.mkdir(); config.write_text('existing config')
-            target = home/'.local/share/spotify-live-lyrics'
-            target.mkdir(parents=True)
-            (target/'lyrics.py').write_text('old code')
-            appearance = home / '.config/spotify-live-lyrics/ui.ini'
-            appearance.parent.mkdir(parents=True)
-            appearance.write_text('[layout]\nalignment = left\n')
-            with patch.object(Path, 'home', return_value=home), \
-                 patch.object(install.shutil, 'which', return_value='/mock/spicetify'), \
-                 patch.object(install.subprocess, 'check_output', return_value=str(config)), \
-                 patch.object(install.subprocess, 'run') as run:
-                install.install(ROOT)
-            self.assertEqual(next((target/'backup').glob('*/lyrics.py')).read_text(), 'old code')
-            self.assertEqual(config.read_text(), 'existing config')
-            self.assertEqual(appearance.read_text(), '[layout]\nalignment = left\n')
-            self.assertEqual((target/'terminal_ui.py').read_bytes(), (ROOT/'terminal_ui.py').read_bytes())
-            ext = (config.parent/'Extensions/slyrics-bridge.js').read_text()
-            self.assertNotIn('__SLYRICS_LOCAL_TOKEN__', ext)
-            self.assertEqual((target/'bridge-config.json').stat().st_mode & 0o777, 0o600)
-            self.assertEqual(run.call_args_list[0].args[0][-2:], ['extensions', 'slyrics-bridge.js'])
 
     def test_node_to_real_python_server(self):
         state = bridge.State()
