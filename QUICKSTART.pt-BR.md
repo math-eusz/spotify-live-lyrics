@@ -1,15 +1,15 @@
-# sylrics 0.6.3 — instalação e comandos
+# sylrics 0.6.4 — instalação e comandos
 
 O comando novo é **sylrics**. O antigo `slyrics` continua compatível.
 
 ## Instalar no seu PC
 
-Baixe **sylrics-0.6.3.tar.gz** na release 0.6.3 e salve em Downloads. Feche a versão anterior com Ctrl+C. No terminal:
+Baixe **sylrics-0.6.4.tar.gz** na release 0.6.4 e salve em Downloads. Feche a versão anterior com Ctrl+C. No terminal:
 
 ```fish
 cd ~/Downloads
-tar -xzf sylrics-0.6.3.tar.gz
-cd sylrics-0.6.3
+tar -xzf sylrics-0.6.4.tar.gz
+cd sylrics-0.6.4
 sh install.sh
 ```
 
@@ -76,7 +76,7 @@ Os atalhos valem só para a execução atual. Para salvar escolhas, use os coman
 
 A demonstração não depende do Spotify: `sylrics demo`. O diagnóstico é `sylrics doctor`.
 
-## Revisão 0.6.3
+## Revisão 0.6.4
 
 O tema dinâmico acompanha a **paleta do terminal**. Na configuração com Noctalia,
 que gera o tema do terminal a partir do papel de parede, isso permite acompanhar
@@ -115,7 +115,7 @@ No arquivo `ui.ini`, as opções correspondentes são `[theme] mode = dynamic`,
 `[playback] typing_mode = words-beta`. Comandos de configuração aplicam-se ao vivo,
 inclusive depois de usar atalhos temporários. A instalação preserva suas escolhas.
 
-### Visualizador — 0.6.3
+### Visualizador — 0.6.4
 
 O visualizador ocupa 85% da largura útil e deixa uma linha de margem inferior.
 A largura acompanha o redimensionamento da janela; os dados de áudio não mudam.
@@ -129,7 +129,7 @@ sylrics config set visualizer.bottom_margin 1
 `width_percent` aceita 0 a 100; 0 restaura a largura fixa de `visualizer.width`.
 `bottom_margin` aceita 0 a 8 linhas. A borda e os avisos visíveis são respeitados.
 
-## 0.6.3 — Suavização, fonte e destaque beta
+## 0.6.4 — Suavização, fonte e destaque beta
 
 O visualizador usa resposta suave baseada no tempo e oito níveis por célula.
 A suavização padrão é 120 ms; valores maiores deixam a queda mais lenta.
@@ -156,3 +156,21 @@ Referência: [opções do Kitty](https://sw.kovidgoyal.net/kitty/invocation/).
 As opções novas também estão no arquivo INI: `layout.word_highlight = off`
 e `visualizer.smoothing_ms = 120`. O destaque começa desativado; as demais
 preferências existentes são preservadas.
+
+## 0.6.4 — Pasta de letras com limite de 10 arquivos
+
+As letras sincronizadas ficam em `~/.local/share/spotify-live-lyrics/lrc/`.
+Ao abrir o player, o programa recolhe os arquivos `.lrc` sincronizados soltos
+na pasta pessoal (apenas esse nível, sem entrar em subpastas). A data original
+é preservada. Arquivos sem timestamps e links simbólicos não são importados.
+
+O limite é **10 arquivos LRC**, ordenados pela data de modificação: os mais
+antigos são apagados ao iniciar e após cada nova gravação. Ler uma letra não
+atualiza sua data. A limpeza só remove arquivos LRC regulares dessa pasta.
+As buscas externas rodam em uma pasta temporária que é removida ao terminar.
+
+`sylrics cache info` mostra a pasta e a quantidade; `sylrics cache clear` limpa
+as letras guardadas. A pasta de letras sobrevive às atualizações. O cache JSON
+de versões anteriores não é mais usado nem removido automaticamente.
+Arquivos criados executando `syncedlyrics` manualmente fora do programa seguem
+as regras desse comando externo.

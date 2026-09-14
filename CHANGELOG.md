@@ -1,3 +1,10 @@
+# 0.6.4
+
+Store plain synchronized LRC files inside the application data directory, retaining
+the ten newest by modification time. Import loose home-directory LRC files on
+startup; isolate syncedlyrics side effects in a temporary directory. Share the
+bounded store with native lyric loading and cache commands.
+
 # 0.6.3
 
 Time-based spectrum smoothing and fractional-height bars. Optional estimated

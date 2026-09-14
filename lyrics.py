@@ -7,6 +7,7 @@ import statistics
 import subprocess
 import threading
 import time
+import tempfile
 from terminal_ui import TerminalUI
 
 FPS = 180
@@ -27,6 +28,14 @@ DURATIONS = queue.Queue(maxsize=1)
 
 def command(args, timeout=2):
     try:
+        if args and args[0] == 'syncedlyrics':
+            # This CLI may write an automatic .lrc beside its working directory.
+            # Keep these side effects temporary, regardless of where sylrics starts.
+            with tempfile.TemporaryDirectory(prefix='sylrics-lookup-') as directory:
+                return subprocess.check_output(
+                    args, text=True, stderr=subprocess.DEVNULL, timeout=timeout,
+                    cwd=directory
+                ).strip()
         return subprocess.check_output(
             args, text=True, stderr=subprocess.DEVNULL, timeout=timeout
         ).strip()

@@ -11,7 +11,7 @@ import sys
 from terminal_ui import CONFIG_PATH, Settings
 from preferences import ensure, parser_for, set_value, set_theme, THEMES
 
-VERSION='0.6.3'
+VERSION='0.6.4'
 
 
 def main(argv=None):
@@ -119,14 +119,13 @@ def main(argv=None):
             print('Tema '+args.name+' aplicado.')
             return 0
         if args.command=='cache':
-            directory=Path(os.environ.get('XDG_CACHE_HOME',str(Path.home()/'.cache')))/'sylrics/lyrics'
-            files=list(directory.glob('*.json'))
+            from lrc_store import LrcStore
+            store=LrcStore()
+            store.maintain()
             if args.action=='clear':
-                for file in files:
-                    file.unlink(missing_ok=True)
-                print(f'{len(files)} letras removidas do cache.')
+                print(f'{store.clear()} letras removidas do cache.')
             else:
-                print(f'{len(files)} letras · {directory}')
+                print(f'{len(store.files())}/10 letras · {store.directory}')
             return 0
         if args.command=='bridge':
             if args.action=='install':

@@ -12,6 +12,7 @@ import time
 import urllib.parse
 import urllib.request
 from lyrics import command, parse_lyrics
+from lrc_store import LrcStore
 
 
 class Player:
@@ -109,7 +110,7 @@ def fetch_lrc(data):
     if data.get('duration', 0) > 0:
         params['duration'] = round(data['duration'])
     request = urllib.request.Request('https://lrclib.net/api/get?' + urllib.parse.urlencode(params),
-                    headers={'User-Agent': 'sylrics/0.6.3 (https://github.com/math-eusz/spotify-live-lyrics)'})
+                    headers={'User-Agent': 'sylrics/0.6.4 (https://github.com/math-eusz/spotify-live-lyrics)'})
     with urllib.request.urlopen(request, timeout=8) as response:
         payload = json.loads(response.read(1_000_001))
     if not isinstance(payload, dict):
@@ -122,7 +123,9 @@ def fetch_lrc(data):
 
 class Lyrics:
     def __init__(self, cache_dir=None):
-        self.cache_dir = Path(cache_dir) if cache_dir else Path(os.environ.get('XDG_CACHE_HOME', str(Path.home()/'.cache'))) / 'sylrics/lyrics'
+        self.store = LrcStore(cache_dir)
+        self.cache_dir = self.store.directory
+        self.store.maintain()
         self.requests = queue.Queue(maxsize=1)
         self.results = queue.Queue()
         self.pending = set()
@@ -141,31 +144,20 @@ class Lyrics:
             except queue.Empty:
                 continue
             raw, label = '', 'Letra não encontrada · visualizador disponível'
-            path = self.cache_dir / (key+'.json')
+            downloaded = False
             try:
-                if path.is_file() and time.time()-path.stat().st_mtime < 7*86400 and path.stat().st_size <= 1_000_000:
-                    cached = json.loads(path.read_text())
-                    if (cached.get('version') == 1 and isinstance(cached.get('lrc'),str)
-                            and parse_lyrics(cached['lrc'])):
-                        raw, label = cached['lrc'], str(cached.get('source','Cache'))
-            except (OSError,ValueError,TypeError,AttributeError):
-                raw=''
-            try:
-                if not raw:
+                raw = self.store.read(key)
+                if raw and parse_lyrics(raw):
+                    label = 'Cache'
+                else:
                     raw, label = fetch_lrc(data)
+                    downloaded = True
                 lines = parse_lyrics(raw)
             except (OSError, ValueError, TypeError, KeyError, AttributeError):
                 lines = []
-            if lines:
+            if lines and downloaded:
                 try:
-                    self.cache_dir.mkdir(parents=True, exist_ok=True)
-                    temp = path.with_suffix('.tmp')
-                    temp.write_text(json.dumps(dict(version=1,lrc=raw,source=label)))
-                    temp.chmod(0o600)
-                    os.replace(temp,path)
-                    old = sorted(self.cache_dir.glob('*.json'),key=lambda f:f.stat().st_mtime)
-                    for file in old[:-64]:
-                        file.unlink(missing_ok=True)
+                    self.store.save(key, raw)
                 except OSError:
                     pass
             self.results.put((key, lines, label))

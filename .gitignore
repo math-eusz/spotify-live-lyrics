@@ -11,3 +11,5 @@ cache/
 !.env.example
 
 bridge-config.json
+
+lrc/
