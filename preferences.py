@@ -29,7 +29,7 @@ def write(parser,path,backup=True):
     path=Path(path)
     path.parent.mkdir(parents=True,exist_ok=True)
     out=io.StringIO()
-    out.write('; sylrics 0.6.0 — salve para aplicar ao vivo. Ajuda: sylrics config list\n')
+    out.write('; sylrics 0.6.1 — salve para aplicar ao vivo. Ajuda: sylrics config list\n')
     parser.write(out)
     fd,name=tempfile.mkstemp(prefix='.ui-',suffix='.ini',dir=path.parent)
     temp=Path(name)
@@ -76,8 +76,10 @@ def set_value(path,key,value):
 
 
 def set_theme(path,name):
-    if name not in THEMES:
+    if name not in (*THEMES, 'dynamic'):
         raise ValueError('Tema desconhecido: '+name)
     parser=parser_for(path)
-    parser['colors']=THEMES[name]
+    parser['theme']['mode']='dynamic' if name=='dynamic' else 'static'
+    if name!='dynamic':
+        parser['colors']=THEMES[name]
     write(parser,path)

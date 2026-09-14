@@ -1,4 +1,4 @@
-"""Unified native/automatic/Spicy player for sylrics 0.6.0."""
+"""Unified native/automatic/Spicy player for sylrics 0.6.1."""
 import os
 import select
 import shutil
@@ -72,6 +72,8 @@ def run(path,source=None,demo=False):
     notice=''
     notice_until=0
     session={}
+    signature=settings.signature
+    help_open=False
     started=time.monotonic()
     demo_lines=[]
     if demo:
@@ -83,6 +85,9 @@ def run(path,source=None,demo=False):
             while True:
                 tick=time.monotonic()
                 settings.reload()
+                if settings.signature != signature:
+                    session.clear()
+                    signature=settings.signature
                 for (section,key),value in session.items():
                     settings.values[section][key]=value
                 playback=settings.values['playback']
@@ -123,10 +128,11 @@ def run(path,source=None,demo=False):
                         notice=f'Sincronização: {value:+.2f}s (sessão)'
                         notice_until=tick+3
                     if key=='?':
-                        notice='n/p faixa · a alinhar · s fonte · +/- sincronizar · configurações: sylrics config'
-                        notice_until=tick+8
+                        help_open=not help_open
+                    for (section,option),value in session.items():
+                        settings.values[section][option]=value
                 if demo:
-                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.6.0',duration=30,
+                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.6.1',duration=30,
                               position=(tick-started)%30,measured_at=tick,playing=True)
                     lines,label=demo_lines,'Demonstração'
                 else:
@@ -138,18 +144,18 @@ def run(path,source=None,demo=False):
                 if data:
                     position=clock.position(data,tick)+float(playback['sync_offset'])
                     if lines:
-                        body,anchor,gap=pages.render(lines,position,settings.values['pages'],float(playback['type_ahead']))
+                        body,anchor,gap=pages.render(lines,position,settings.values['pages'],float(playback['type_ahead']),playback['typing_mode'])
                     else:
                         body=anchor=label.split(' · ',1)[-1]
                         gap=True
                     bars=visual.frame(settings.values['visualizer'],data['playing'],gap,tick)
                     ui.draw(data['artist'],data['title'],body,position,data.get('duration',0),data['playing'],
-                            label,anchor,visual=bars,gap=gap,notice=notice if tick<notice_until else '')
+                            label,anchor,visual=bars,gap=gap,help_open=help_open,notice=notice if tick<notice_until else '')
                 else:
                     message='Abra um player compatível e toque uma música.' if mode!='spicy' else (
                         bridge.error or 'Abra a letra no Spicy Lyrics para conectar.')
-                    ui.draw('','sylrics · 0.6.0',message,playing=False,
-                            notice='sylrics doctor · diagnóstico',source=mode)
+                    ui.draw('','sylrics · 0.6.1',message,playing=False,
+                            notice='sylrics doctor · Diagnóstico',source=mode,help_open=help_open)
                 time.sleep(max(0,1/int(playback['fps'])-(time.monotonic()-tick)))
     except KeyboardInterrupt:
         pass

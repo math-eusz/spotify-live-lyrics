@@ -51,7 +51,7 @@ class Interface(unittest.TestCase):
         ui = TerminalUI(Settings('/nonexistent'))
         text = '\n'.join(plain(ui.compose('Artist', 'Track', 'Body', position=65,
                             duration=240, playing=False, size=(100, 25))))
-        for expected in ('1:05', '4:00', 'PAUSADO', '━'):
+        for expected in ('1:05', '4:00', 'Pausado', '━'):
             self.assertIn(expected, text)
         text = '\n'.join(plain(ui.compose('', '', 'Waiting', duration=0, size=(100, 25))))
         self.assertIn('--:--', text)

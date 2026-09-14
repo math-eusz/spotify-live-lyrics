@@ -1,4 +1,4 @@
-# sylrics · 0.6.0
+# sylrics · 0.6.1
 
 Live terminal lyrics, a configurable audio visualizer, and pages that follow phrase cadence. Native mode works without Spicetify or Spicy Lyrics.
 
@@ -8,11 +8,11 @@ The command is **`sylrics`**. The previous spelling, `slyrics`, remains a compat
 
 Requires Linux, Python **3.10+**, and `playerctl` for native playback. `cava` is optional for real audio visualization. `syncedlyrics` is optional: if present, its existing search is tried first; otherwise the built-in LRCLIB client fetches synchronized lyrics directly. An internet connection is needed for uncached lyrics.
 
-Download `sylrics-0.6.0.tar.gz` from the [0.6.0 release](https://github.com/math-eusz/spotify-live-lyrics/releases/tag/v0.6.0), then run:
+Download `sylrics-0.6.1.tar.gz` from the [0.6.1 release](https://github.com/math-eusz/spotify-live-lyrics/releases/tag/v0.6.1), then run:
 
 ```sh
-tar -xzf sylrics-0.6.0.tar.gz
-cd sylrics-0.6.0
+tar -xzf sylrics-0.6.1.tar.gz
+cd sylrics-0.6.1
 sh install.sh
 ```
 
@@ -129,8 +129,28 @@ These are synchronized lyric displays, not speech recognition. Incorrect source 
 
 ## Backups and development
 
-The previous state is preserved in `backup/before-v0.6.0` and release `v0.5.0`. The installer keeps overwritten runtime files under `~/.local/share/spotify-live-lyrics/backup/before-0.6.0-*`. Historical standalone Python installers remain downloadable from their original releases; they are no longer active installers in this source tree.
+The previous state is preserved in `backup/before-v0.6.1` and release `v0.5.0`. The installer keeps overwritten runtime files under `~/.local/share/spotify-live-lyrics/backup/before-0.6.1-*`. Historical standalone Python installers remain downloadable from their original releases; they are no longer active installers in this source tree.
 
 Run `python -m unittest discover -s tests -v`. The release workflow validates the project, builds source archives from exact commits, publishes checksums and never moves existing release tags. See [CHANGELOG.md](CHANGELOG.md).
 
 Protocol references: [LRCLIB](https://lrclib.net/docs), [CAVA configuration](https://github.com/karlstav/cava/blob/master/example_files/config), [Spicy Lyrics cache](https://github.com/Spikerko/spicy-lyrics/blob/main/src/modules/Store.ts).
+
+### Version 0.6.1: terminal theme and optional word reveal
+
+` sylrics theme dynamic ` uses the terminal's default foreground/background and
+indexed accent colors. Wallpaper-driven terminal palettes (including Noctalia
+terminal templates) therefore carry through to sylrics. It does not extract colors
+from wallpaper images; the terminal must receive palette updates. Static presets
+remain available with `sylrics theme warm` (or `purple`, `mono`, `ocean`).
+
+The visualizer label and persistent shortcut hints are hidden by default. Press
+`?` for the controls panel. Use `sylrics visualizer off` to hide the visualizer,
+`visualizer auto` to restore it, and `sylrics config set visualizer.show_label true`
+to show its label. `layout.show_hints` enables the compact help hint.
+
+`sylrics typing words-beta` reveals complete words at weighted positions within
+the existing line timeline, holding between words without accumulating delays.
+This is an estimated beta animation, not voice detection or measured word timing.
+`sylrics typing smooth` restores the default continuous typing. All options are
+available in the live INI configuration, and command-line changes take precedence
+over earlier session shortcuts after a successful configuration reload.

@@ -114,7 +114,7 @@ class Version06(unittest.TestCase):
             finally:second.close();second.thread.join(1)
 
     def test_visualizer_decorative_label_pause_and_missing_cava(self):
-        v=Visualizer();cfg=dict(DEFAULTS['visualizer'],mode='activity')
+        v=Visualizer();cfg=dict(DEFAULTS['visualizer'],mode='activity',show_label='true')
         a=v.frame(cfg,True,True,1);b=v.frame(cfg,True,True,2)
         self.assertNotEqual(a,b)
         self.assertIn('animação',a[0])
@@ -152,7 +152,7 @@ class Version06(unittest.TestCase):
             subprocess.run(['sh',str(ROOT/'install.sh')],env=env,check=True,capture_output=True,timeout=5)
             command=home/'.local/bin/sylrics'
             version=subprocess.check_output([str(command),'--version'],env=env,text=True)
-            self.assertIn('0.6.0',version)
+            self.assertIn('0.6.1',version)
             subprocess.run([str(command),'visualizer','off'],env=env,check=True,capture_output=True)
             self.assertEqual(next((old/'backup').glob('*/lyrics.py')).read_text(),'old version')
             master,slave=pty.openpty()

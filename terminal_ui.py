@@ -12,13 +12,14 @@ DEFAULTS = {
     'layout': {'alignment': 'center', 'vertical': 'center', 'padding': '3',
                'line_spacing': '1', 'lyrics_width': '86', 'border': 'true',
                'show_progress': 'true', 'show_source': 'false',
-               'show_footer': 'true', 'cursor': '▎', 'icons': 'true'},
+               'show_hints': 'false', 'show_footer': 'true', 'cursor': '▎', 'icons': 'true'},
     'playback': {'source': 'native', 'player': 'spotify', 'fps': '180',
-                 'sync_offset': '0', 'type_ahead': '0.10'},
+                 'sync_offset': '0', 'type_ahead': '0.10', 'typing_mode': 'smooth'},
     'pages': {'mode': 'dynamic', 'min_lines': '2', 'max_lines': '6',
               'target_seconds': '12', 'pause_seconds': '2'},
     'visualizer': {'mode': 'auto', 'style': 'bars', 'width': '32', 'height': '3',
-                   'only_gaps': 'false', 'input': 'auto', 'sensitivity': '100'},
+                   'show_label': 'false', 'only_gaps': 'false', 'input': 'auto', 'sensitivity': '100'},
+    'theme': {'mode': 'static'},
     'colors': {'text': '#DEDAD0', 'muted': '#88867F', 'accent': '#C8BA91',
                'border': '#69675E', 'background': 'default'},
 }
@@ -100,9 +101,10 @@ class Settings:
                                     ('lyrics_width', 10, 240)]:
                 if not low <= parser.getint('layout', name) <= high:
                     raise ValueError(name)
-            for name in ('border', 'show_progress', 'show_source', 'show_footer', 'icons'):
+            for name in ('border', 'show_progress', 'show_source', 'show_footer', 'show_hints', 'icons'):
                 parser.getboolean('layout', name)
-            choices = {('playback', 'source'): ('native', 'auto', 'spicy'),
+            choices = {('theme', 'mode'): ('static', 'dynamic'),
+                       ('playback', 'typing_mode'): ('smooth', 'words-beta'),('playback', 'source'): ('native', 'auto', 'spicy'),
                        ('pages', 'mode'): ('dynamic', 'fixed'),
                        ('visualizer', 'mode'): ('auto', 'spectrum', 'activity', 'off'),
                        ('visualizer', 'style'): ('bars', 'wave', 'dots'),
@@ -126,6 +128,7 @@ class Settings:
             if not re.fullmatch(r'[\w.,-]+', parser['playback']['player']):
                 raise ValueError('player')
             parser.getboolean('visualizer', 'only_gaps')
+            parser.getboolean('visualizer', 'show_label')
             cursor = parser['layout']['cursor']
             if safe(cursor) != cursor or cells(cursor) > 2:
                 raise ValueError('cursor')
@@ -153,6 +156,11 @@ class TerminalUI:
         self.frame_rows = None
 
     def color(self, name):
+        if self.settings.values['theme']['mode'] == 'dynamic':
+            # Indexed colors follow the terminal palette updated by Noctalia.
+            return {'text': '\033[39m', 'muted': '\033[90m',
+                    'accent': '\033[34m', 'border': '\033[90m',
+                    'background': '\033[49m'}[name]
         color = self.settings.values['colors'][name]
         if color == 'default':
             return '\033[49m' if name == 'background' else '\033[39m'
@@ -160,7 +168,7 @@ class TerminalUI:
         return f'\033[{48 if name == "background" else 38};2;{r};{g};{b}m'
 
     def compose(self, artist, title, body, position=0, duration=0,
-                playing=True, source='', anchor=None, size=None, visual=None, notice='', gap=False):
+                playing=True, source='', anchor=None, size=None, visual=None, notice='', gap=False, help_open=False):
         self.settings.reload()
         width, height = size or shutil.get_terminal_size((100, 28))
         # Reserve the final column: writing it can cause terminal auto-wrap.
@@ -168,7 +176,7 @@ class TerminalUI:
         height = max(1, height)
         frame_key = (artist, title, body, int(position), int(duration),
                      int(width * min(1, max(0, position / duration))) if duration > 0 else 0,
-                     playing, source, anchor, width, height, visual, notice, gap,
+                     playing, source, anchor, width, height, visual, notice, gap, help_open,
                      repr(self.settings.values), self.settings.error)
         if frame_key == self.frame_key:
             return self.frame_rows
@@ -204,7 +212,7 @@ class TerminalUI:
                 put(y, 0, '│', 'border')
                 put(y, width - 1, '│', 'border')
         header_y = edge + (1 if height >= 12 else 0)
-        state = ('▶ TOCANDO' if playing else 'Ⅱ PAUSADO') if self.settings.flag('icons') else ('TOCANDO' if playing else 'PAUSADO')
+        state = ('▶ Em reprodução' if playing else 'Ⅱ Pausado') if self.settings.flag('icons') else ('Em reprodução' if playing else 'Pausado')
         title_text = f'{title}  —  {artist}' if artist else title or 'slyrics'
         state_space = len(state) + 3 if usable >= 45 else 0
         put(header_y, left, truncate(title_text, usable - state_space))
@@ -233,6 +241,16 @@ class TerminalUI:
             content_bottom -= visual_room
         room = max(1, content_bottom - content_top + 1)
         wrap_width = min(usable, int(layout['lyrics_width']))
+        if help_open:
+            body = anchor = ('Controles de reprodução\n\n'
+                'Espaço  ·  Reproduzir ou pausar\n'
+                'N / P  ·  Próxima faixa / Faixa anterior\n'
+                'V  ·  Alternar visualizador\n'
+                'A  ·  Alterar alinhamento\n'
+                'S  ·  Exibir ou ocultar a fonte\n'
+                '+ / −  ·  Ajustar sincronização\n'
+                'Q  ·  Encerrar\n'
+                '?  ·  Fechar ajuda')
         visible_rows = body.split('\n')
         full_rows = (anchor if anchor is not None else body).split('\n')
         prepared = []
@@ -269,12 +287,12 @@ class TerminalUI:
                 put(y, left + max(0, (usable - cells(row)) // 2), row, 'accent')
         if footer:
             status = self.settings.error or notice or (source if self.settings.flag('show_source') else '')
-            hint = 'q sair · espaço pausa · v visual · ? ajuda'
+            hint = '[?] Ajuda' if self.settings.flag('show_hints') else ''
             if usable > len(hint) + 15:
                 put(footer_y, left, truncate(status, usable - len(hint) - 3), 'muted')
                 put(footer_y, left + usable - len(hint), hint, 'muted')
             else:
-                put(footer_y, left, truncate(status or 'Ctrl+C sair', usable), 'muted')
+                put(footer_y, left, truncate(status or hint, usable), 'muted')
         rows = []
         for row, style_row in zip(grid, styles):
             parts, previous = [self.color('background')], None

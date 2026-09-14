@@ -1,3 +1,9 @@
+# 0.6.1
+
+Terminal-palette dynamic theme, on-demand keyboard help, optional visualizer labels,
+and opt-in whole-word typing (beta). Fixed live configuration precedence after
+session shortcuts. Existing native fallback and smooth typing remain available.
+
 # Changelog
 
 Retrospective release numbering for the complete versions delivered during development. Intermediate upload commits are not separate releases. Download names such as `v3` and `v4` were installer revisions, not prior semantic-version tags.

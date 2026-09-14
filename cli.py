@@ -11,7 +11,7 @@ import sys
 from terminal_ui import CONFIG_PATH, Settings
 from preferences import ensure, parser_for, set_value, set_theme, THEMES
 
-VERSION='0.6.0'
+VERSION='0.6.1'
 
 
 def main(argv=None):
@@ -27,6 +27,8 @@ def main(argv=None):
     select.add_argument('mode',choices=('native','auto','spicy'))
     viz=sub.add_parser('visualizer',help='salvar o modo do visualizador')
     viz.add_argument('mode',choices=('auto','spectrum','activity','off'))
+    typing=sub.add_parser('typing',help='digitação contínua ou palavras completas (beta)')
+    typing.add_argument('mode',choices=('smooth','words-beta'))
     control=sub.add_parser('control',help='controlar reprodução pelo terminal')
     control.add_argument('action',choices=('play-pause','next','previous'))
     sub.add_parser('doctor',help='verificar dependências e configuração')
@@ -37,7 +39,7 @@ def main(argv=None):
     get=c.add_parser('get');get.add_argument('key')
     put=c.add_parser('set');put.add_argument('key');put.add_argument('value')
     theme=sub.add_parser('theme',help='aplicar um tema com backup')
-    theme.add_argument('name',choices=tuple(THEMES))
+    theme.add_argument('name',choices=(*THEMES, 'dynamic'))
     cache=sub.add_parser('cache',help='gerenciar letras salvas')
     cache.add_argument('action',choices=('clear','info'),default='info',nargs='?')
     bridge=sub.add_parser('bridge',help='ponte opcional do Spicy Lyrics')
@@ -77,6 +79,10 @@ def main(argv=None):
                 for section in p.sections():
                     for key,value in p[section].items():
                         print(f'{section}.{key} = {value}')
+            return 0
+        if args.command=='typing':
+            set_value(args.config,'playback.typing_mode',args.mode)
+            print('Modo de digitação: '+args.mode+' · salvo')
             return 0
         if args.command in ('source','visualizer'):
             key='playback.source' if args.command=='source' else 'visualizer.mode'

@@ -109,7 +109,7 @@ def fetch_lrc(data):
     if data.get('duration', 0) > 0:
         params['duration'] = round(data['duration'])
     request = urllib.request.Request('https://lrclib.net/api/get?' + urllib.parse.urlencode(params),
-                    headers={'User-Agent': 'sylrics/0.6.0 (https://github.com/math-eusz/spotify-live-lyrics)'})
+                    headers={'User-Agent': 'sylrics/0.6.1 (https://github.com/math-eusz/spotify-live-lyrics)'})
     with urllib.request.urlopen(request, timeout=8) as response:
         payload = json.loads(response.read(1_000_001))
     if not isinstance(payload, dict):

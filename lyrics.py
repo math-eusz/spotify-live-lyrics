@@ -144,7 +144,7 @@ def lyrics_worker():
 
 
 def render_block(lines, position, ahead=TYPE_AHEAD, block_size=LINES_PER_BLOCK,
-                 pause_seconds=PAUSE_SECONDS, complete=False):
+                 pause_seconds=PAUSE_SECONDS, complete=False, typing_mode='smooth'):
     current = bisect.bisect_right([line["start"] for line in lines], position) - 1
     if current < 0:
         return "..."
@@ -164,6 +164,17 @@ def render_block(lines, position, ahead=TYPE_AHEAD, block_size=LINES_PER_BLOCK,
         progress = min(1.0, elapsed / line["duration"])
         count = bisect.bisect_right(line["weights"], progress * line["weights"][-1])
         count = min(len(line["text"]), max(1, count))
+        if typing_mode == 'words-beta':
+            # Quantize the existing lyric clock; never add sleeps or cumulative delay.
+            # Whole words appear at their weighted start, then hold until the next.
+            words = list(re.finditer(r'\S+', line['text']))
+            threshold = progress * line['weights'][-1]
+            count = 0
+            for word in words:
+                onset = line['weights'][word.start()-1] if word.start() else 0
+                if threshold < onset:
+                    break
+                count = word.end()
         cursor = "█" if progress < 1.0 else ""
         rows.append(line["text"] if complete else line["text"][:count] + cursor)
         silence_start = line["blank"] if line["blank"] is not None else line["end"]

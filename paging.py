@@ -30,7 +30,7 @@ class Pages:
         self.starts = []
         self.times = []
 
-    def render(self, lines, position, settings, ahead=.1):
+    def render(self, lines, position, settings, ahead=.1, typing_mode='smooth'):
         key = (id(lines), tuple(settings.items()))
         if key != self.key:
             self.lines_ref = lines  # Keep identity alive while the cache is in use.
@@ -44,7 +44,7 @@ class Pages:
         first = self.starts[page]
         end = self.starts[page+1] if page+1 < len(self.starts) else len(lines)
         block = lines[first:end]
-        kwargs = dict(ahead=ahead, block_size=max(1, len(block)),
+        kwargs = dict(ahead=ahead, typing_mode=typing_mode, block_size=max(1, len(block)),
                       pause_seconds=float(settings['pause_seconds']))
         body = render_block(block, position, **kwargs)
         anchor = render_block(block, position, complete=True, **kwargs)

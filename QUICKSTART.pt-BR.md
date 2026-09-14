@@ -1,15 +1,15 @@
-# sylrics 0.6.0 — instalação e comandos
+# sylrics 0.6.1 — instalação e comandos
 
 O comando novo é **sylrics**. O antigo `slyrics` continua compatível.
 
 ## Instalar no seu PC
 
-Baixe **sylrics-0.6.0.tar.gz** na release 0.6.0 e salve em Downloads. Feche a versão anterior com Ctrl+C. No terminal:
+Baixe **sylrics-0.6.1.tar.gz** na release 0.6.1 e salve em Downloads. Feche a versão anterior com Ctrl+C. No terminal:
 
 ```fish
 cd ~/Downloads
-tar -xzf sylrics-0.6.0.tar.gz
-cd sylrics-0.6.0
+tar -xzf sylrics-0.6.1.tar.gz
+cd sylrics-0.6.1
 sh install.sh
 ```
 
@@ -75,3 +75,42 @@ As páginas são dinâmicas, limitadas inicialmente a 6 frases. Frases rápidas 
 Os atalhos valem só para a execução atual. Para salvar escolhas, use os comandos `config`, `source`, `visualizer` ou `theme`.
 
 A demonstração não depende do Spotify: `sylrics demo`. O diagnóstico é `sylrics doctor`.
+
+## Revisão 0.6.1
+
+O tema dinâmico acompanha a **paleta do terminal**. Na configuração com Noctalia,
+que gera o tema do terminal a partir do papel de parede, isso permite acompanhar
+as mudanças sem outro gerador de cores. O sylrics não lê a imagem do papel de
+parede. Se o terminal não receber uma nova paleta, as cores permanecerão iguais.
+A transparência e o fundo continuam sob controle do terminal.
+
+```sh
+sylrics theme dynamic
+# Retornar às cores fixas:
+sylrics theme warm
+```
+
+O rótulo do visualizador e a lista permanente de atalhos ficam ocultos por padrão.
+Pressione `?` para abrir ou fechar a ajuda. O visualizador continua opcional:
+
+```sh
+sylrics visualizer off
+sylrics visualizer auto
+sylrics config set visualizer.show_label true
+sylrics config set layout.show_hints true
+```
+
+**Palavras completas — beta:** exibe cada palavra inteira e a mantém até a próxima,
+sem interromper o relógio de reprodução. Usa o ritmo estimado da linha; não detecta
+voz nem cria timestamps reais por palavra. Pausar ou buscar outro ponto da música
+continua funcionando. A digitação contínua permanece como padrão.
+
+```sh
+sylrics typing words-beta
+sylrics typing smooth
+```
+
+No arquivo `ui.ini`, as opções correspondentes são `[theme] mode = dynamic`,
+`[visualizer] show_label = false`, `[layout] show_hints = false` e
+`[playback] typing_mode = words-beta`. Comandos de configuração aplicam-se ao vivo,
+inclusive depois de usar atalhos temporários. A instalação preserva suas escolhas.

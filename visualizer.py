@@ -66,15 +66,16 @@ class Visualizer:
         mode = settings['mode']
         if mode == 'off':
             return ()
+        show_label = settings.get('show_label', 'false').lower() in ('true', '1', 'yes', 'on')
         if settings['only_gaps'].lower() in ('true', '1', 'yes', 'on') and not gap:
-            return tuple('' for _ in range(2 if settings['style']=='wave' else int(settings['height'])+1))
+            return tuple('' for _ in range((1 if settings['style']=='wave' else int(settings['height']))+int(show_label)))
         width, height = int(settings['width']), int(settings['height'])
         with self.lock:
             values = list(self.values)
             age = now - self.received
         has_audio = mode in ('auto', 'spectrum') and bool(values) and age < 1
         if mode == 'spectrum' and not has_audio:
-            return ('♫ Áudio indisponível · verifique CAVA',)
+            return ('Áudio indisponível · verifique o CAVA',) if show_label else ()
         if has_audio:
             values = (values + [0] * width)[:width]
             label = '♫ Intervalo vocal · áudio' if gap else '♫ Áudio'
@@ -93,7 +94,7 @@ class Visualizer:
             for level in range(height, 0, -1):
                 rows.append(''.join(('•' if style == 'dots' else '▮') if v*height >= level-.6 else ' '
                                     for v in values))
-        return tuple([label] + rows)
+        return tuple(([label] if show_label else []) + rows)
 
     def close(self):
         if self.proc:
