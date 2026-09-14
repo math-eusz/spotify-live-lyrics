@@ -39,7 +39,7 @@ class Pages:
             self.key = key
         current = bisect.bisect_right(self.times, position) - 1
         if current < 0:
-            return '♫ Introdução', '♫ Introdução', True
+            return self.rest(position, settings)
         page = bisect.bisect_right(self.starts, current) - 1
         first = self.starts[page]
         end = self.starts[page+1] if page+1 < len(self.starts) else len(lines)
@@ -61,6 +61,19 @@ class Pages:
         vocal_end = lines[current].get('blank')
         if vocal_end is None:
             vocal_end = lines[current]['end']
-        gap = position - vocal_end >= float(settings['pause_seconds'])
+        next_start = lines[current+1]['start'] if current+1 < len(lines) else float('inf')
+        marked = lines[current].get('blank') is not None
+        pause = float(settings['pause_seconds'])
+        gap = position >= vocal_end and (marked or next_start - vocal_end >= pause)
+        # Estimated ends need a short grace period; explicit silence is immediate.
+        if gap and not marked:
+            gap = position >= vocal_end + min(.5, pause)
+        if gap and settings.get('gap_animation', 'true').lower() in ('true','1','yes','on'):
+            return self.rest(position, settings)
         return body, anchor, gap
+
+    @staticmethod
+    def rest(position, settings):
+        dots = '.' * (1 + int(max(0, position) / .45) % 3)
+        return dots, '...', True
 

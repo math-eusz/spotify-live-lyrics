@@ -151,17 +151,8 @@ def fit_spectrum(row, width, bar_width=1, spacing=1):
     bar_width = max(1, min(int(bar_width), width))
     spacing = max(0, int(spacing))
     count = max(1, (width + spacing) // (bar_width + spacing))
-    glyphs = ' ▁▂▃▄▅▆▇█'
-    fractional = all(c in glyphs for c in row)
     bars = []
     for index in range(count):
         position = index * (len(row)-1) / (count-1) if count > 1 else (len(row)-1)/2
-        low = int(position)
-        high = min(low+1, len(row)-1)
-        if fractional:
-            level = glyphs.index(row[low]) * (1-position+low) + glyphs.index(row[high]) * (position-low)
-            char = glyphs[min(8, max(0, round(level)))]
-        else:
-            char = row[min(len(row)-1, round(position))]
-        bars.append(char * bar_width)
+        bars.append(row[min(len(row)-1, round(position))] * bar_width)
     return (' ' * spacing).join(bars)[:width]

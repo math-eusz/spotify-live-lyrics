@@ -1,3 +1,21 @@
+# v0.7.1 — Visualizador corrigido e intervalos animados
+
+Corrige o redimensionamento do espectro: colunas inteiras são preservadas, evitando barras deformadas pela interpolação independente das linhas. Espaçamento, espessura e suavização continuam disponíveis.
+
+Durante a introdução e os intervalos vocais, as frases são substituídas por pontos animados. A animação acompanha a posição de reprodução e congela ao pausar. Marcas explícitas de silêncio são respeitadas imediatamente; finais estimados recebem tolerância de 500 ms. Intervalos curtos não apagam as frases. Sem tempos detalhados, isso é uma estimativa, não detecção de voz.
+
+A frase atual recebe cor de destaque e negrito, enquanto a palavra no modo beta recebe também sublinhado. O destaque não aparece em mensagens de intervalo ou na ajuda.
+
+O comando de fonte aceita uma família monoespaçada instalada, sem alterar a configuração global do Kitty:
+
+```sh
+sylrics font 16 --family "monospace"
+sylrics config set layout.active_bold false
+sylrics config set pages.gap_animation false
+```
+
+O tamanho e a família se aplicam à janela aberta por `sylrics font`. A instalação mantém as preferências e cria backup da versão anterior. Spicy Lyrics continua opcional.
+
 # 0.7.0
 
 Configurable visualizer bar spacing (0–5 cells) and thickness (1–4 cells), with

@@ -1,4 +1,4 @@
-# sylrics · 0.7.0
+# sylrics · 0.7.1
 
 Synchronized lyrics in your Linux terminal, with smooth typing, an optional audio
 visualizer, adaptive reading modes and live customization. Spicy Lyrics is optional.
@@ -9,9 +9,9 @@ Requires Python 3.10+ and `playerctl`. CAVA enables real audio visualization;
 `syncedlyrics` is an optional lyric provider. The native fallback also uses LRCLIB.
 
 ```sh
-curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.7.0/sylrics-0.7.0.tar.gz
-tar -xzf sylrics-0.7.0.tar.gz
-cd sylrics-0.7.0
+curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.7.1/sylrics-0.7.1.tar.gz
+tar -xzf sylrics-0.7.1.tar.gz
+cd sylrics-0.7.1
 sh install.sh
 ```
 
@@ -21,7 +21,7 @@ It does not require sudo or modify Spicetify. No AUR package is provided.
 
 [Portuguese installation guide](QUICKSTART.pt-BR.md) · [Command reference](COMMANDS.pt-BR.md)
 
-## New in 0.7.0
+## New in 0.7.1
 
 - Separate bar spacing and width, with proportional layout and gradual resampling.
 - Rolling reading mode: retain recent phrases instead of clearing the entire block.
@@ -113,3 +113,21 @@ Spotify on the user's desktop. Incorrect lyric timestamps can still be wrong.
 The 180 FPS setting is a rendering target, not a performance guarantee.
 
 Historical versions remain in releases. Current source is released under MIT.
+
+# v0.7.1 — Visualizador corrigido e intervalos animados
+
+Corrige o redimensionamento do espectro: colunas inteiras são preservadas, evitando barras deformadas pela interpolação independente das linhas. Espaçamento, espessura e suavização continuam disponíveis.
+
+Durante a introdução e os intervalos vocais, as frases são substituídas por pontos animados. A animação acompanha a posição de reprodução e congela ao pausar. Marcas explícitas de silêncio são respeitadas imediatamente; finais estimados recebem tolerância de 500 ms. Intervalos curtos não apagam as frases. Sem tempos detalhados, isso é uma estimativa, não detecção de voz.
+
+A frase atual recebe cor de destaque e negrito, enquanto a palavra no modo beta recebe também sublinhado. O destaque não aparece em mensagens de intervalo ou na ajuda.
+
+O comando de fonte aceita uma família monoespaçada instalada, sem alterar a configuração global do Kitty:
+
+```sh
+sylrics font 16 --family "monospace"
+sylrics config set layout.active_bold false
+sylrics config set pages.gap_animation false
+```
+
+O tamanho e a família se aplicam à janela aberta por `sylrics font`. A instalação mantém as preferências e cria backup da versão anterior. Spicy Lyrics continua opcional.

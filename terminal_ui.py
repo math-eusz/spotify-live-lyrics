@@ -13,11 +13,11 @@ DEFAULTS = {
     'layout': {'alignment': 'center', 'vertical': 'center', 'padding': '3',
                'line_spacing': '1', 'lyrics_width': '86', 'border': 'true',
                'show_progress': 'true', 'show_source': 'false',
-               'history_dim': 'true', 'word_highlight': 'off', 'font_size': '14', 'show_hints': 'false', 'show_footer': 'true', 'cursor': '▎', 'icons': 'true'},
+               'history_dim': 'true', 'active_bold': 'true', 'font_family': 'monospace', 'word_highlight': 'off', 'font_size': '14', 'show_hints': 'false', 'show_footer': 'true', 'cursor': '▎', 'icons': 'true'},
     'playback': {'source': 'native', 'player': 'spotify', 'fps': '180',
                  'sync_offset': '0', 'type_ahead': '0.10', 'typing_mode': 'smooth'},
     'pages': {'mode': 'dynamic', 'min_lines': '2', 'max_lines': '6',
-              'target_seconds': '12', 'pause_seconds': '2'},
+              'target_seconds': '12', 'pause_seconds': '2', 'gap_animation': 'true'},
     'visualizer': {'mode': 'auto', 'style': 'bars', 'width': '32', 'width_percent': '85', 'bottom_margin': '1', 'height': '3',
                    'bar_spacing': '1', 'bar_width': '1', 'smoothing_ms': '120', 'show_label': 'false', 'only_gaps': 'false', 'input': 'auto', 'sensitivity': '100'},
     'theme': {'mode': 'static'},
@@ -102,7 +102,7 @@ class Settings:
                                     ('lyrics_width', 10, 240)]:
                 if not low <= parser.getint('layout', name) <= high:
                     raise ValueError(name)
-            for name in ('border', 'show_progress', 'show_source', 'show_footer', 'show_hints', 'icons', 'history_dim'):
+            for name in ('border', 'show_progress', 'show_source', 'show_footer', 'show_hints', 'icons', 'history_dim', 'active_bold'):
                 parser.getboolean('layout', name)
             choices = {('layout', 'word_highlight'): ('off', 'bold-beta'),('theme', 'mode'): ('static', 'dynamic'),
                        ('playback', 'typing_mode'): ('smooth', 'words-beta'),('playback', 'source'): ('native', 'auto', 'spicy'),
@@ -131,6 +131,10 @@ class Settings:
                 raise ValueError('min_lines > max_lines')
             if not re.fullmatch(r'[\w.,-]+', parser['playback']['player']):
                 raise ValueError('player')
+            parser.getboolean('pages', 'gap_animation')
+            family = parser['layout']['font_family']
+            if not family.strip() or len(family) > 120 or safe(family) != family:
+                raise ValueError('font_family')
             parser.getboolean('visualizer', 'only_gaps')
             parser.getboolean('visualizer', 'show_label')
             cursor = parser['layout']['cursor']
@@ -161,7 +165,9 @@ class TerminalUI:
 
     def color(self, name):
         if name == 'word':
-            return '\033[1m' + self.color('accent')
+            return '\033[1;4m' + self.color('accent')
+        if name == 'active':
+            return ('\033[1m' if self.settings.flag('active_bold') else '') + self.color('accent')
         if self.settings.values['theme']['mode'] == 'dynamic':
             # Indexed colors follow the terminal palette updated by Noctalia.
             return {'text': '\033[39m', 'muted': '\033[90m',
@@ -297,7 +303,7 @@ class TerminalUI:
                     lo, hi = max(0, word_span[0]-segment_start), min(count, word_span[1]-segment_start)
                     if hi > lo:
                         highlight = (lo, hi)
-                prepared.append((fragment, min(wrap_width, cells(segment) + cells(layout['cursor'])), i == len(visible_rows)-1, highlight))
+                prepared.append((fragment, min(wrap_width, cells(segment) + cells(layout['cursor'])), i == len(visible_rows)-1 and not gap and not help_open, highlight))
                 segment_start += len(segment)
                 remaining -= len(segment)
             if i + 1 < len(visible_rows):
@@ -311,7 +317,7 @@ class TerminalUI:
         for y, (text, full_width, active, highlight) in enumerate(prepared, start_y):
             free = max(0, usable - full_width)
             x = left + (free // 2 if layout['alignment'] == 'center' else free if layout['alignment'] == 'right' else 0)
-            put(y, x, crop(text, usable - (x-left)), 'accent' if active else 'muted' if self.settings.flag('history_dim') and not help_open else 'text')
+            put(y, x, crop(text, usable - (x-left)), 'active' if active else 'muted' if self.settings.flag('history_dim') and not help_open else 'text')
             if highlight:
                 lo, hi = highlight
                 put(y, x + cells(text[:lo]), text[lo:hi], 'word')
@@ -337,12 +343,12 @@ class TerminalUI:
             else:
                 put(footer_y, left, truncate(status or hint, usable), 'muted')
         rows = []
-        palette = {name: self.color(name) for name in ('text','muted','accent','border','word','background')}
+        palette = {name: self.color(name) for name in ('text','muted','accent','border','word','active','background')}
         for row, style_row in zip(grid, styles):
             parts, previous = [palette['background']], None
             for c, style in zip(row, style_row):
                 if style != previous:
-                    parts.append('\033[22m' + palette[style])
+                    parts.append('\033[22;24m' + palette[style])
                     previous = style
                 parts.append(c)
             rows.append(''.join(parts) + '\033[0m')

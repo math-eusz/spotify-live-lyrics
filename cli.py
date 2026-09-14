@@ -11,7 +11,7 @@ import sys
 from terminal_ui import CONFIG_PATH, Settings
 from preferences import ensure, parser_for, set_value, set_theme, THEMES, set_preset, PRESETS, restore
 
-VERSION='0.7.0'
+VERSION='0.7.1'
 
 
 def main(argv=None):
@@ -32,6 +32,7 @@ def main(argv=None):
     highlight=sub.add_parser('highlight',help='destaque estimado da palavra atual (beta)')
     highlight.add_argument('mode',choices=('off','bold-beta'))
     font=sub.add_parser('font',help='abrir uma janela Kitty com tamanho de fonte próprio')
+    font.add_argument('--family', help='família monoespaçada instalada no sistema')
     font.add_argument('size',type=int,nargs='?',help='tamanho de 6 a 48 pontos; reutiliza o tamanho salvo')
     control=sub.add_parser('control',help='controlar reprodução pelo terminal')
     control.add_argument('action',choices=('play-pause','next','previous'))
@@ -110,10 +111,15 @@ def main(argv=None):
             size=args.size if args.size is not None else int(current.values['layout']['font_size'])
             if not 6 <= size <= 48:
                 raise ValueError('O tamanho da fonte deve estar entre 6 e 48 pontos.')
-            command=[executable,'--override',f'font_size={size}',sys.executable,
+            family=args.family or current.values['layout']['font_family']
+            from terminal_ui import safe
+            if not family.strip() or len(family)>120 or safe(family)!=family:
+                raise ValueError('Família de fonte inválida.')
+            command=[executable,'--override',f'font_size={size}','--override',f'font_family={family}',sys.executable,
                      str(Path(__file__).resolve()),'--config',str(args.config.resolve())]
             if args.source:
                 command.extend(['--source',args.source])
+            set_value(args.config,'layout.font_family',family)
             set_value(args.config,'layout.font_size',str(size))
             return subprocess.call(command)
         if args.command=='highlight':

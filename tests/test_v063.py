@@ -51,7 +51,7 @@ class Revision063(unittest.TestCase):
         after=ui.compose(**args)
         self.assertEqual([ANSI.sub('',r) for r in before],[ANSI.sub('',r) for r in after])
         text='\n'.join(after)
-        selected=re.findall(r'\x1b\[1m(.*?)\x1b\[22m',text)
+        selected=re.findall(r'\x1b\[1;4m(.*?)\x1b\[22;24m',text)
         self.assertEqual([ANSI.sub('',x) for x in selected],['wor'])
         self.assertNotIn('\x1b[1m','\n'.join(ui.compose(**args,gap=True)))
         self.assertNotIn('\x1b[1m','\n'.join(ui.compose(**args,help_open=True)))
@@ -82,3 +82,4 @@ class Revision063(unittest.TestCase):
             for key,value in [('visualizer.smoothing_ms','-1'),('layout.word_highlight','bold'),('layout.font_size','0')]:
                 with self.assertRaises(ValueError):set_value(path,key,value)
                 self.assertEqual(path.read_bytes(),old)
+

@@ -28,7 +28,7 @@ class Version070(unittest.TestCase):
         self.assertEqual(fit_spectrum('█',0),'')
 
     def test_fractional_resampling_is_gradual(self):
-        self.assertEqual(fit_spectrum(' █',9,1,0),' ▁▂▃▄▅▆▇█')
+        self.assertEqual(fit_spectrum(' █',9,1,0),'     ████')
 
     def test_rolling_keeps_context_until_next_phrase_and_respects_seek(self):
         lines=parse_lyrics('[00:02]First\n[00:04]Second\n[00:06]Third\n[00:08]Fourth\n[00:10]Fifth')

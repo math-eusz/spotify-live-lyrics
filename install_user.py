@@ -15,7 +15,7 @@ def install(root=None):
     home=Path.home()
     target=home/'.local/share/spotify-live-lyrics'
     timestamp=datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')
-    backup=target/'backup'/('before-0.7.0-'+timestamp)
+    backup=target/'backup'/('before-0.7.1-'+timestamp)
     # Validate all files before touching the installed version.
     payload={name:(root/name).read_bytes() for name in RUNTIME}
     for name,content in payload.items():
@@ -55,7 +55,7 @@ def install(root=None):
     if completion.exists():
         shutil.copy2(completion,backup/'sylrics-completion.fish')
     shutil.copy2(root/'completions/sylrics.fish',completion)
-    print('sylrics 0.7.0 instalado. Backup: '+str(backup))
+    print('sylrics 0.7.1 instalado. Backup: '+str(backup))
     print('Configuração: '+str(config))
     print('Abra um novo terminal e execute: sylrics')
     if str(binaries) not in os.environ.get('PATH','').split(os.pathsep):

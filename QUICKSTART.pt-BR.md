@@ -1,12 +1,12 @@
-# sylrics 0.7.0 — instalação e primeiros passos
+# sylrics 0.7.1 — instalação e primeiros passos
 
 Feche a versão anterior com Ctrl+C. Baixe e instale:
 
 ```fish
 cd ~/Downloads
-curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.7.0/sylrics-0.7.0.tar.gz
-tar -xzf sylrics-0.7.0.tar.gz
-cd sylrics-0.7.0
+curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.7.1/sylrics-0.7.1.tar.gz
+tar -xzf sylrics-0.7.1.tar.gz
+cd sylrics-0.7.1
 sh install.sh
 ```
 
@@ -14,7 +14,7 @@ O instalador faz backup, preserva suas configurações e não altera o Spicetify
 Abra outro terminal e execute `sylrics` (ou `~/.local/bin/sylrics` no terminal atual).
 No Arch/CachyOS, o modo nativo precisa de `playerctl`; CAVA é opcional para áudio real.
 
-## Experimentar a 0.7.0
+## Experimentar a 0.7.1
 
 ```fish
 sylrics preset studio
@@ -61,3 +61,21 @@ limpeza ao iniciar/salvar e coleta dos LRC sincronizados soltos na pasta pessoal
 As configurações ficam em `~/.config/spotify-live-lyrics/ui.ini`.
 
 Consulte [COMMANDS.pt-BR.md](COMMANDS.pt-BR.md) para os comandos e limites.
+
+# v0.7.1 — Visualizador corrigido e intervalos animados
+
+Corrige o redimensionamento do espectro: colunas inteiras são preservadas, evitando barras deformadas pela interpolação independente das linhas. Espaçamento, espessura e suavização continuam disponíveis.
+
+Durante a introdução e os intervalos vocais, as frases são substituídas por pontos animados. A animação acompanha a posição de reprodução e congela ao pausar. Marcas explícitas de silêncio são respeitadas imediatamente; finais estimados recebem tolerância de 500 ms. Intervalos curtos não apagam as frases. Sem tempos detalhados, isso é uma estimativa, não detecção de voz.
+
+A frase atual recebe cor de destaque e negrito, enquanto a palavra no modo beta recebe também sublinhado. O destaque não aparece em mensagens de intervalo ou na ajuda.
+
+O comando de fonte aceita uma família monoespaçada instalada, sem alterar a configuração global do Kitty:
+
+```sh
+sylrics font 16 --family "monospace"
+sylrics config set layout.active_bold false
+sylrics config set pages.gap_animation false
+```
+
+O tamanho e a família se aplicam à janela aberta por `sylrics font`. A instalação mantém as preferências e cria backup da versão anterior. Spicy Lyrics continua opcional.
