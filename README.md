@@ -123,7 +123,7 @@ During playback: `q` or Ctrl+C exits; Space toggles playback; `n`/`p` switch tra
 
 ## Reliability and limits
 
-Player queries, lyric lookups and audio reading run outside the render loop. Successful lyrics are cached under `$XDG_CACHE_HOME/sylrics/lyrics` (normally `~/.cache/sylrics/lyrics`) for seven days, with a 64-file cap. Failed lookups retry after 60 seconds. Results are keyed by track; an old result cannot replace another song. Small playback-clock jitter is smoothed, while seeks and pause changes apply immediately.
+Player queries, lyric lookups and audio reading run outside the render loop. Successful lyrics are stored as LRC files under `~/.local/share/spotify-live-lyrics/lrc/`, keeping the ten newest by modification time. Startup and successful downloads enforce this limit. Previously generated JSON caches are no longer used. Failed lookups retry after 60 seconds. Results are keyed by track; an old result cannot replace another song. Small playback-clock jitter is smoothed, while seeks and pause changes apply immediately.
 
 These are synchronized lyric displays, not speech recognition. Incorrect source timestamps and alternate song versions can still produce incorrect timing. Live Spotify, PipeWire/PulseAudio and CAVA capture must be checked on your actual computer. Automated tests use fixture player/cache/audio processes and a real pseudo-terminal; they do not claim to hear your music.
 
