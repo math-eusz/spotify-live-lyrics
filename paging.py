@@ -43,6 +43,16 @@ class Pages:
         page = bisect.bisect_right(self.starts, current) - 1
         first = self.starts[page]
         end = self.starts[page+1] if page+1 < len(self.starts) else len(lines)
+        if settings['mode'] == 'rolling':
+            first = max(0, current - int(settings['max_lines']) + 1)
+            for i in range(first + 1, current + 1):
+                previous = lines[i-1]
+                vocal_end = previous.get('blank')
+                if vocal_end is None:
+                    vocal_end = previous['end']
+                if lines[i]['start'] - vocal_end >= float(settings['pause_seconds']):
+                    first = i
+            end = current + 1
         block = lines[first:end]
         kwargs = dict(ahead=ahead, typing_mode=typing_mode, block_size=max(1, len(block)),
                       pause_seconds=float(settings['pause_seconds']))
@@ -53,3 +63,4 @@ class Pages:
             vocal_end = lines[current]['end']
         gap = position - vocal_end >= float(settings['pause_seconds'])
         return body, anchor, gap
+

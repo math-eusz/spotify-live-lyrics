@@ -1,3 +1,14 @@
+# 0.7.0
+
+Configurable visualizer bar spacing (0–5 cells) and thickness (1–4 cells), with
+fractional resampling that keeps gaps stable on resize. Rolling lyric windows
+retain context until the next phrase and reset after vocal gaps. Minimal, studio
+and cinema presets preserve colors, lyric source, synchronization and font size.
+Previous lines can be dimmed; keyboard help adapts to smaller windows. New r/h
+shortcuts control reading mode and beta highlight. Config restore recovers the
+last backup, including after invalid manual edits. Resolve each ANSI color once
+per composed frame instead of once per row/style run.
+
 # 0.6.4
 
 Store plain synchronized LRC files inside the application data directory, retaining
@@ -60,4 +71,5 @@ Native playback by default; optional Spicy Lyrics; cadence-based pages with conf
 ## v0.1.0 — Original terminal lyrics
 
 [Release notes](releases/notes/v0.1.0.md) · [Source snapshot](https://github.com/math-eusz/spotify-live-lyrics/tree/1dd12470d2efb92a1872a75e355ba1332bb6f86e)
+
 

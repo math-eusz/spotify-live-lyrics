@@ -9,9 +9,9 @@ import shutil
 import subprocess
 import sys
 from terminal_ui import CONFIG_PATH, Settings
-from preferences import ensure, parser_for, set_value, set_theme, THEMES
+from preferences import ensure, parser_for, set_value, set_theme, THEMES, set_preset, PRESETS, restore
 
-VERSION='0.6.4'
+VERSION='0.7.0'
 
 
 def main(argv=None):
@@ -38,10 +38,14 @@ def main(argv=None):
     sub.add_parser('doctor',help='verificar dependências e configuração')
     config=sub.add_parser('config',help='editar configurações persistentes')
     c=config.add_subparsers(dest='config_command')
-    for name in ('path','list','edit'):
+    for name in ('path','list','edit','restore'):
         c.add_parser(name)
     get=c.add_parser('get');get.add_argument('key')
     put=c.add_parser('set');put.add_argument('key');put.add_argument('value')
+    preset=sub.add_parser('preset',help='aplicar um perfil visual com backup')
+    preset.add_argument('name',choices=(*PRESETS, 'list'))
+    reading=sub.add_parser('reading',help='escolher a organização das frases')
+    reading.add_argument('mode',choices=('dynamic','fixed','rolling'))
     theme=sub.add_parser('theme',help='aplicar um tema com backup')
     theme.add_argument('name',choices=(*THEMES, 'dynamic'))
     cache=sub.add_parser('cache',help='gerenciar letras salvas')
@@ -63,11 +67,14 @@ def main(argv=None):
             print(args.config)
             return 0
         if args.command=='config' and args.config_command=='edit':
-            # Invalid files must remain editable, including a failed migration.
             if not args.config.exists():
                 ensure(args.config)
             editor=shlex.split(os.environ.get('EDITOR','nano' if shutil.which('nano') else 'vi'))
             return subprocess.call(editor+[str(args.config)])
+        if args.command=='config' and args.config_command=='restore':
+            restore(args.config)
+            print('Configuração anterior restaurada; estado atual salvo em backup.')
+            return 0
         ensure(args.config)
         if args.command=='config':
             p=parser_for(args.config)
@@ -83,6 +90,17 @@ def main(argv=None):
                 for section in p.sections():
                     for key,value in p[section].items():
                         print(f'{section}.{key} = {value}')
+            return 0
+        if args.command=='preset':
+            if args.name=='list':
+                print('minimal · leitura discreta\nstudio · letras e espectro amplo\ncinema · leitura contínua com espaço entre frases')
+            else:
+                set_preset(args.config,args.name)
+                print('Perfil '+args.name+' aplicado. Tema e fonte de letras preservados.')
+            return 0
+        if args.command=='reading':
+            set_value(args.config,'pages.mode',args.mode)
+            print('Modo de leitura: '+args.mode+' · salvo')
             return 0
         if args.command=='font':
             executable=shutil.which('kitty')
@@ -144,3 +162,4 @@ def main(argv=None):
 
 if __name__=='__main__':
     raise SystemExit(main())
+

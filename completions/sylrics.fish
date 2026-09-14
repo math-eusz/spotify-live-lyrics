@@ -1,9 +1,9 @@
 complete -c sylrics -f
-complete -c sylrics -n '__fish_use_subcommand' -a 'play demo config theme typing highlight font source visualizer control doctor cache bridge' -d 'sylrics command'
+complete -c sylrics -n '__fish_use_subcommand' -a 'play demo config theme preset reading typing highlight font source visualizer control doctor cache bridge' -d 'sylrics command'
 complete -c sylrics -l source -xa 'native auto spicy' -d 'Lyric source'
 complete -c sylrics -l config -r -d 'Alternative INI file'
 complete -c sylrics -l version -d 'Version'
-complete -c sylrics -n '__fish_seen_subcommand_from config' -a 'path list get set edit'
+complete -c sylrics -n '__fish_seen_subcommand_from config' -a 'path list get set edit restore'
 complete -c sylrics -n '__fish_seen_subcommand_from theme' -a 'warm purple mono ocean dynamic'
 complete -c sylrics -n '__fish_seen_subcommand_from cache' -a 'info clear'
 complete -c sylrics -n '__fish_seen_subcommand_from bridge' -a 'install status'
@@ -13,3 +13,7 @@ complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'theme.mode play
 complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'visualizer.width_percent visualizer.bottom_margin'
 complete -c sylrics -n '__fish_seen_subcommand_from highlight' -a 'off bold-beta'
 complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'visualizer.smoothing_ms layout.word_highlight layout.font_size'
+
+complete -c sylrics -n '__fish_seen_subcommand_from preset' -a 'list minimal studio cinema'
+complete -c sylrics -n '__fish_seen_subcommand_from reading' -a 'dynamic fixed rolling'
+complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'visualizer.bar_spacing visualizer.bar_width layout.history_dim'

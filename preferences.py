@@ -29,7 +29,7 @@ def write(parser,path,backup=True):
     path=Path(path)
     path.parent.mkdir(parents=True,exist_ok=True)
     out=io.StringIO()
-    out.write('; sylrics 0.6.4 — salve para aplicar ao vivo. Ajuda: sylrics config list\n')
+    out.write('; sylrics 0.7.0 — salve para aplicar ao vivo. Ajuda: sylrics config list\n')
     parser.write(out)
     fd,name=tempfile.mkstemp(prefix='.ui-',suffix='.ini',dir=path.parent)
     temp=Path(name)
@@ -83,3 +83,36 @@ def set_theme(path,name):
     if name!='dynamic':
         parser['colors']=THEMES[name]
     write(parser,path)
+
+
+# Each preset sets the same small set of presentation options. Sources, colors,
+# timing, font size, cache and beta preferences are deliberately not part of it.
+PRESETS = {
+    'minimal': {'layout': {'alignment':'center','vertical':'center','border':'false','line_spacing':'1','history_dim':'true'},
+                'visualizer': {'mode':'off','style':'bars','height':'2','width_percent':'70','bar_spacing':'1','bar_width':'1','only_gaps':'false'},
+                'pages': {'mode':'rolling','min_lines':'2','max_lines':'3'}},
+    'studio': {'layout': {'alignment':'center','vertical':'center','border':'true','line_spacing':'1','history_dim':'true'},
+               'visualizer': {'mode':'auto','style':'bars','height':'4','width_percent':'85','bar_spacing':'1','bar_width':'1','only_gaps':'false'},
+               'pages': {'mode':'dynamic','min_lines':'2','max_lines':'6'}},
+    'cinema': {'layout': {'alignment':'center','vertical':'center','border':'true','line_spacing':'2','history_dim':'true'},
+               'visualizer': {'mode':'auto','style':'bars','height':'2','width_percent':'75','bar_spacing':'2','bar_width':'1','only_gaps':'true'},
+               'pages': {'mode':'rolling','min_lines':'2','max_lines':'5'}},
+}
+
+
+def set_preset(path, name):
+    if name not in PRESETS:
+        raise ValueError('Perfil desconhecido: '+name)
+    parser = parser_for(path)
+    for section, options in PRESETS[name].items():
+        parser[section].update(options)
+    write(parser, path)
+
+
+def restore(path):
+    path = Path(path)
+    backups = sorted((path.parent/'backup').glob('ui-*.ini'))
+    if not backups:
+        raise ValueError('Nenhum backup de configuração disponível.')
+    previous = parser_for(backups[-1])
+    write(previous, path)

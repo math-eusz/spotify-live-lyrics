@@ -26,6 +26,7 @@ class Revision061(unittest.TestCase):
 
     def test_help_is_on_demand_and_labels_optional(self):
         ui=TerminalUI(Settings('/missing'))
+        ui.settings.values['visualizer']['bar_spacing']='0'
         normal='\n'.join(ui.compose('Artist','Song','Phrase',size=(100,40)))
         self.assertNotIn('q sair',normal)
         self.assertNotIn('[?] Ajuda',normal)
@@ -57,6 +58,7 @@ class Revision061(unittest.TestCase):
     def test_visualizer_follows_window_and_stays_above_border(self):
         import re
         ui=TerminalUI(Settings('/missing'))
+        ui.settings.values['visualizer']['bar_spacing']='0'
         for width,height in [(100,30),(180,45),(35,18)]:
             rows=ui.compose('Artist','Song','Phrase',size=(width,height),visual=('▮'*32,))
             rows=[re.sub(r'\x1b\[[0-9;]*m','',r) for r in rows]
@@ -68,3 +70,4 @@ class Revision061(unittest.TestCase):
         ui.settings.values['visualizer']['width_percent']='0'
         rows=ui.compose('A','B','C',size=(100,30),visual=('▮'*32,))
         self.assertEqual(sum(r.count('▮') for r in rows),32)
+

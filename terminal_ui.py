@@ -7,18 +7,19 @@ import shutil
 import sys
 import time
 import unicodedata
+from visualizer import fit_spectrum
 
 DEFAULTS = {
     'layout': {'alignment': 'center', 'vertical': 'center', 'padding': '3',
                'line_spacing': '1', 'lyrics_width': '86', 'border': 'true',
                'show_progress': 'true', 'show_source': 'false',
-               'word_highlight': 'off', 'font_size': '14', 'show_hints': 'false', 'show_footer': 'true', 'cursor': '▎', 'icons': 'true'},
+               'history_dim': 'true', 'word_highlight': 'off', 'font_size': '14', 'show_hints': 'false', 'show_footer': 'true', 'cursor': '▎', 'icons': 'true'},
     'playback': {'source': 'native', 'player': 'spotify', 'fps': '180',
                  'sync_offset': '0', 'type_ahead': '0.10', 'typing_mode': 'smooth'},
     'pages': {'mode': 'dynamic', 'min_lines': '2', 'max_lines': '6',
               'target_seconds': '12', 'pause_seconds': '2'},
     'visualizer': {'mode': 'auto', 'style': 'bars', 'width': '32', 'width_percent': '85', 'bottom_margin': '1', 'height': '3',
-                   'smoothing_ms': '120', 'show_label': 'false', 'only_gaps': 'false', 'input': 'auto', 'sensitivity': '100'},
+                   'bar_spacing': '1', 'bar_width': '1', 'smoothing_ms': '120', 'show_label': 'false', 'only_gaps': 'false', 'input': 'auto', 'sensitivity': '100'},
     'theme': {'mode': 'static'},
     'colors': {'text': '#DEDAD0', 'muted': '#88867F', 'accent': '#C8BA91',
                'border': '#69675E', 'background': 'default'},
@@ -101,11 +102,11 @@ class Settings:
                                     ('lyrics_width', 10, 240)]:
                 if not low <= parser.getint('layout', name) <= high:
                     raise ValueError(name)
-            for name in ('border', 'show_progress', 'show_source', 'show_footer', 'show_hints', 'icons'):
+            for name in ('border', 'show_progress', 'show_source', 'show_footer', 'show_hints', 'icons', 'history_dim'):
                 parser.getboolean('layout', name)
             choices = {('layout', 'word_highlight'): ('off', 'bold-beta'),('theme', 'mode'): ('static', 'dynamic'),
                        ('playback', 'typing_mode'): ('smooth', 'words-beta'),('playback', 'source'): ('native', 'auto', 'spicy'),
-                       ('pages', 'mode'): ('dynamic', 'fixed'),
+                       ('pages', 'mode'): ('dynamic', 'fixed', 'rolling'),
                        ('visualizer', 'mode'): ('auto', 'spectrum', 'activity', 'off'),
                        ('visualizer', 'style'): ('bars', 'wave', 'dots'),
                        ('visualizer', 'input'): ('auto', 'pipewire', 'pulse')}
@@ -113,6 +114,7 @@ class Settings:
                 if parser[section][name] not in allowed:
                     raise ValueError(name)
             for section, name, low, high in (
+                ('visualizer', 'bar_spacing', 0, 5), ('visualizer', 'bar_width', 1, 4),
                 ('layout', 'font_size', 6, 48), ('visualizer', 'smoothing_ms', 0, 500),
                 ('playback', 'fps', 15, 240), ('pages', 'min_lines', 1, 16),
                 ('pages', 'max_lines', 1, 16), ('visualizer', 'width', 8, 100),
@@ -184,7 +186,9 @@ class TerminalUI:
                      repr(self.settings.values), self.settings.error)
         if frame_key == self.frame_key:
             return self.frame_rows
-        layout = self.settings.values['layout']
+        layout = dict(self.settings.values['layout'])
+        if help_open:
+            layout.update(line_spacing='0', vertical='center', alignment='left')
         border = self.settings.flag('border') and width >= 20 and height >= 7
         edge = int(border)
         padding = min(int(layout['padding']), max(0, (width - 12) // 2))
@@ -252,11 +256,20 @@ class TerminalUI:
                 'Espaço  ·  Reproduzir ou pausar\n'
                 'N / P  ·  Próxima faixa / Faixa anterior\n'
                 'V  ·  Alternar visualizador\n'
+                'R  ·  Alternar modo de leitura\n'
+                'H  ·  Destaque da palavra (beta)\n'
                 'A  ·  Alterar alinhamento\n'
                 'S  ·  Exibir ou ocultar a fonte\n'
                 '+ / −  ·  Ajustar sincronização\n'
                 'Q  ·  Encerrar\n'
                 '?  ·  Fechar ajuda')
+        if help_open and room < 13:
+            body = anchor = ('Ajuda · ? fechar\n'
+                'Espaço: pausa   q: sair\n'
+                'n/p: faixa   v: visualizador\n'
+                'r: leitura   h: destaque\n'
+                'a: alinhar   s: fonte\n'
+                '+/-: sincronização')
         visible_rows = body.split('\n')
         full_rows = (anchor if anchor is not None else body).split('\n')
         prepared = []
@@ -298,7 +311,7 @@ class TerminalUI:
         for y, (text, full_width, active, highlight) in enumerate(prepared, start_y):
             free = max(0, usable - full_width)
             x = left + (free // 2 if layout['alignment'] == 'center' else free if layout['alignment'] == 'right' else 0)
-            put(y, x, crop(text, usable - (x-left)), 'accent' if active else 'text')
+            put(y, x, crop(text, usable - (x-left)), 'accent' if active else 'muted' if self.settings.flag('history_dim') and not help_open else 'text')
             if highlight:
                 lo, hi = highlight
                 put(y, x + cells(text[:lo]), text[lo:hi], 'word')
@@ -308,8 +321,11 @@ class TerminalUI:
             for y, row in enumerate(visual, visual_y):
                 # Stretch only spectrum glyphs, never explanatory labels. Keep CAVA
                 # capture stable during resize; these remain the same audio bins.
-                if percent and row and all(c in ' ▮•▁▂▃▄▅▆▇█' for c in row):
-                    row = ''.join(row[min(len(row)-1, int(x*len(row)/target))] for x in range(target))
+                if row and all(c in ' ▮•▁▂▃▄▅▆▇█' for c in row):
+                    cfg = self.settings.values['visualizer']
+                    gap_size, bar_width = int(cfg['bar_spacing']), int(cfg['bar_width'])
+                    width_target = target if percent else min(usable, len(row)*(bar_width+gap_size)-gap_size)
+                    row = fit_spectrum(row, width_target, bar_width, gap_size)
                 row = crop(row, usable)
                 put(y, left + max(0, (usable - cells(row)) // 2), row, 'accent')
         if footer:
@@ -321,11 +337,12 @@ class TerminalUI:
             else:
                 put(footer_y, left, truncate(status or hint, usable), 'muted')
         rows = []
+        palette = {name: self.color(name) for name in ('text','muted','accent','border','word','background')}
         for row, style_row in zip(grid, styles):
-            parts, previous = [self.color('background')], None
+            parts, previous = [palette['background']], None
             for c, style in zip(row, style_row):
                 if style != previous:
-                    parts.append('\033[22m' + self.color(style))
+                    parts.append('\033[22m' + palette[style])
                     previous = style
                 parts.append(c)
             rows.append(''.join(parts) + '\033[0m')
@@ -346,3 +363,4 @@ class TerminalUI:
             sys.stdout.write(''.join(output))
             sys.stdout.flush()
         self.previous, self.last_size = rows, size
+
