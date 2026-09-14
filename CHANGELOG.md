@@ -2,6 +2,12 @@
 
 Retrospective release numbering for the complete versions delivered during development. Intermediate upload commits are not separate releases. Download names such as `v3` and `v4` were installer revisions, not prior semantic-version tags.
 
+## v0.6.0 — Standalone lyrics, dynamic pages and visualizer
+
+Native playback by default; optional Spicy Lyrics; cadence-based pages with configurable limits; CAVA spectrum or labeled activity animation; command-based live configuration; themes and keyboard controls; real `sylrics` executable and source archive installer with migration backups. The existing typewriter effect is preserved. No AUR/yay packaging is included.
+
+[Release notes](releases/notes/v0.6.0.md) · [Source snapshot](https://github.com/math-eusz/spotify-live-lyrics/tree/v0.6.0)
+
 ## v0.5.0 — Customizable terminal interface
 
 [Release notes](releases/notes/v0.5.0.md) · [Source snapshot](https://github.com/math-eusz/spotify-live-lyrics/tree/8e86603794090904a19604d8f7f1af0eea379731)

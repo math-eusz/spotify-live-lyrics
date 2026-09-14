@@ -69,6 +69,18 @@
       "install_slyrics_interface_v4.py",
       "ui.ini"
     ],
+    "latest": false
+  },
+  {
+    "tag": "v0.6.0",
+    "commit": "da8bf00b24c8f3814ea5c12a63b1b0c5fb72825b",
+    "title": "v0.6.0 \u2014 Standalone lyrics, dynamic pages and visualizer",
+    "notes": "releases/notes/v0.6.0.md",
+    "assets": [
+      "ui.ini",
+      "QUICKSTART.pt-BR.md"
+    ],
+    "source_bundle": true,
     "latest": true
   }
 ]
