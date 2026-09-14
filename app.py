@@ -1,4 +1,4 @@
-"""Unified native/automatic/Spicy player for sylrics 0.6.1."""
+"""Unified native/automatic/Spicy player for sylrics 0.6.2."""
 import os
 import select
 import shutil
@@ -132,7 +132,7 @@ def run(path,source=None,demo=False):
                     for (section,option),value in session.items():
                         settings.values[section][option]=value
                 if demo:
-                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.6.1',duration=30,
+                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.6.2',duration=30,
                               position=(tick-started)%30,measured_at=tick,playing=True)
                     lines,label=demo_lines,'Demonstração'
                 else:
@@ -154,7 +154,7 @@ def run(path,source=None,demo=False):
                 else:
                     message='Abra um player compatível e toque uma música.' if mode!='spicy' else (
                         bridge.error or 'Abra a letra no Spicy Lyrics para conectar.')
-                    ui.draw('','sylrics · 0.6.1',message,playing=False,
+                    ui.draw('','sylrics · 0.6.2',message,playing=False,
                             notice='sylrics doctor · Diagnóstico',source=mode,help_open=help_open)
                 time.sleep(max(0,1/int(playback['fps'])-(time.monotonic()-tick)))
     except KeyboardInterrupt:

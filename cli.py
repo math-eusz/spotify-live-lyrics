@@ -11,7 +11,7 @@ import sys
 from terminal_ui import CONFIG_PATH, Settings
 from preferences import ensure, parser_for, set_value, set_theme, THEMES
 
-VERSION='0.6.1'
+VERSION='0.6.2'
 
 
 def main(argv=None):
@@ -27,7 +27,7 @@ def main(argv=None):
     select.add_argument('mode',choices=('native','auto','spicy'))
     viz=sub.add_parser('visualizer',help='salvar o modo do visualizador')
     viz.add_argument('mode',choices=('auto','spectrum','activity','off'))
-    typing=sub.add_parser('typing',help='digitação contínua ou palavras completas (beta)')
+    typing=sub.add_parser('typing',help='digitação contínua ou pausas entre palavras (beta)')
     typing.add_argument('mode',choices=('smooth','words-beta'))
     control=sub.add_parser('control',help='controlar reprodução pelo terminal')
     control.add_argument('action',choices=('play-pause','next','previous'))

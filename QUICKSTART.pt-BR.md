@@ -1,15 +1,15 @@
-# sylrics 0.6.1 — instalação e comandos
+# sylrics 0.6.2 — instalação e comandos
 
 O comando novo é **sylrics**. O antigo `slyrics` continua compatível.
 
 ## Instalar no seu PC
 
-Baixe **sylrics-0.6.1.tar.gz** na release 0.6.1 e salve em Downloads. Feche a versão anterior com Ctrl+C. No terminal:
+Baixe **sylrics-0.6.2.tar.gz** na release 0.6.2 e salve em Downloads. Feche a versão anterior com Ctrl+C. No terminal:
 
 ```fish
 cd ~/Downloads
-tar -xzf sylrics-0.6.1.tar.gz
-cd sylrics-0.6.1
+tar -xzf sylrics-0.6.2.tar.gz
+cd sylrics-0.6.2
 sh install.sh
 ```
 
@@ -31,7 +31,7 @@ Se faltar playerctl no Arch/CachyOS:
 sudo pacman -S playerctl
 ```
 
-O programa funciona sem CAVA, usando animação identificada como tal. Instale CAVA para ter barras que reagem ao áudio do computador. Confira o estado com `sylrics doctor`.
+O programa funciona sem CAVA, usando uma animação decorativa (o rótulo pode ser ativado com `visualizer.show_label`). Instale CAVA para ter barras que reagem ao áudio do computador. Confira o estado com `sylrics doctor`.
 
 ## Escolher a fonte
 
@@ -76,7 +76,7 @@ Os atalhos valem só para a execução atual. Para salvar escolhas, use os coman
 
 A demonstração não depende do Spotify: `sylrics demo`. O diagnóstico é `sylrics doctor`.
 
-## Revisão 0.6.1
+## Revisão 0.6.2
 
 O tema dinâmico acompanha a **paleta do terminal**. Na configuração com Noctalia,
 que gera o tema do terminal a partir do papel de parede, isso permite acompanhar
@@ -100,7 +100,7 @@ sylrics config set visualizer.show_label true
 sylrics config set layout.show_hints true
 ```
 
-**Palavras completas — beta:** exibe cada palavra inteira e a mantém até a próxima,
+**Digitação por palavra — beta:** anima cada palavra letra por letra e faz uma pausa breve antes da próxima,
 sem interromper o relógio de reprodução. Usa o ritmo estimado da linha; não detecta
 voz nem cria timestamps reais por palavra. Pausar ou buscar outro ponto da música
 continua funcionando. A digitação contínua permanece como padrão.
@@ -114,3 +114,17 @@ No arquivo `ui.ini`, as opções correspondentes são `[theme] mode = dynamic`,
 `[visualizer] show_label = false`, `[layout] show_hints = false` e
 `[playback] typing_mode = words-beta`. Comandos de configuração aplicam-se ao vivo,
 inclusive depois de usar atalhos temporários. A instalação preserva suas escolhas.
+
+### Visualizador — 0.6.2
+
+O visualizador ocupa 85% da largura útil e deixa uma linha de margem inferior.
+A largura acompanha o redimensionamento da janela; os dados de áudio não mudam.
+Para personalizar ao vivo:
+
+```sh
+sylrics config set visualizer.width_percent 85
+sylrics config set visualizer.bottom_margin 1
+```
+
+`width_percent` aceita 0 a 100; 0 restaura a largura fixa de `visualizer.width`.
+`bottom_margin` aceita 0 a 8 linhas. A borda e os avisos visíveis são respeitados.

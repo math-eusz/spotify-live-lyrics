@@ -165,16 +165,27 @@ def render_block(lines, position, ahead=TYPE_AHEAD, block_size=LINES_PER_BLOCK,
         count = bisect.bisect_right(line["weights"], progress * line["weights"][-1])
         count = min(len(line["text"]), max(1, count))
         if typing_mode == 'words-beta':
-            # Quantize the existing lyric clock; never add sleeps or cumulative delay.
-            # Whole words appear at their weighted start, then hold until the next.
+            # Fit typing and short holds into the existing line clock. No sleeps.
             words = list(re.finditer(r'\S+', line['text']))
-            threshold = progress * line['weights'][-1]
+            total = line['weights'][-1]
             count = 0
-            for word in words:
-                onset = line['weights'][word.start()-1] if word.start() else 0
-                if threshold < onset:
+            for index, word in enumerate(words):
+                start_weight = line['weights'][word.start()-1] if word.start() else 0
+                next_start = words[index+1].start() if index+1 < len(words) else None
+                end_weight = line['weights'][next_start-1] if next_start is not None else total
+                onset = start_weight / total * line['duration']
+                slot = max(.001, (end_weight-start_weight) / total * line['duration'])
+                local = elapsed - onset
+                if local < 0:
                     break
-                count = word.end()
+                # Up to 80 ms between words, shortened for fast lyrics.
+                hold = min(.08, slot * .25)
+                typing = max(.001, slot - hold)
+                fraction = min(1.0, local / typing)
+                length = word.end() - word.start()
+                count = word.start() + min(length, 1 + int((length-1) * fraction))
+                if fraction < 1:
+                    break
         cursor = "█" if progress < 1.0 else ""
         rows.append(line["text"] if complete else line["text"][:count] + cursor)
         silence_start = line["blank"] if line["blank"] is not None else line["end"]

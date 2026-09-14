@@ -1,3 +1,9 @@
+# 0.6.2
+
+Animated characters within words-beta, with short holds that fit the line timeline.
+Visualizer expands to 85% of available width, moves lower, and supports configurable
+width percentage and bottom margin. Empty footer no longer reserves space.
+
 # 0.6.1
 
 Terminal-palette dynamic theme, on-demand keyboard help, optional visualizer labels,

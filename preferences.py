@@ -29,7 +29,7 @@ def write(parser,path,backup=True):
     path=Path(path)
     path.parent.mkdir(parents=True,exist_ok=True)
     out=io.StringIO()
-    out.write('; sylrics 0.6.1 — salve para aplicar ao vivo. Ajuda: sylrics config list\n')
+    out.write('; sylrics 0.6.2 — salve para aplicar ao vivo. Ajuda: sylrics config list\n')
     parser.write(out)
     fd,name=tempfile.mkstemp(prefix='.ui-',suffix='.ini',dir=path.parent)
     temp=Path(name)

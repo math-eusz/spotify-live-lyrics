@@ -152,7 +152,7 @@ class Version06(unittest.TestCase):
             subprocess.run(['sh',str(ROOT/'install.sh')],env=env,check=True,capture_output=True,timeout=5)
             command=home/'.local/bin/sylrics'
             version=subprocess.check_output([str(command),'--version'],env=env,text=True)
-            self.assertIn('0.6.1',version)
+            self.assertIn('0.6.2',version)
             subprocess.run([str(command),'visualizer','off'],env=env,check=True,capture_output=True)
             self.assertEqual(next((old/'backup').glob('*/lyrics.py')).read_text(),'old version')
             master,slave=pty.openpty()

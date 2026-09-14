@@ -37,17 +37,34 @@ class Revision061(unittest.TestCase):
         self.assertEqual(len(v.frame(dict(cfg,show_label='true'),True,False,1)),int(cfg['height'])+1)
         self.assertEqual(v.frame(dict(cfg,mode='off'),True,False),())
 
-    def test_beta_whole_words_hold_seek_and_finish_without_drift(self):
+    def test_beta_animates_then_holds_without_drift(self):
         lines=parse_lyrics('[00:02]One longer word!\n[00:06]Next phrase')
         def visible(pos,**kw):
             return render_block(lines,pos,ahead=0,typing_mode='words-beta',**kw).rstrip('█')
         self.assertEqual(visible(1),'...')
-        self.assertEqual(visible(2),'One')
-        self.assertEqual(visible(2.01),'One')
-        valid={'One','One longer','One longer word!'}
-        for i in range(400):
-            self.assertIn(visible(2+i/100),valid)
-        self.assertEqual(visible(5.99),'One longer word!')
-        self.assertEqual(visible(2),'One')
+        self.assertEqual(visible(2),'O')
+        frames=[visible(2+i/1000) for i in range(4000)]
+        self.assertIn('On',frames)
+        self.assertIn('One l',frames)
+        self.assertIn('One long',frames)
+        self.assertGreaterEqual(frames.count('One'),70)
+        self.assertEqual(frames[-1],'One longer word!')
+        self.assertEqual([len(x) for x in frames],sorted(len(x) for x in frames))
+        self.assertEqual(visible(2),'O')
         self.assertEqual(render_block(lines,2,ahead=0),'O█')
         self.assertEqual(visible(2,complete=True),'One longer word!')
+
+    def test_visualizer_follows_window_and_stays_above_border(self):
+        import re
+        ui=TerminalUI(Settings('/missing'))
+        for width,height in [(100,30),(180,45),(35,18)]:
+            rows=ui.compose('Artist','Song','Phrase',size=(width,height),visual=('▮'*32,))
+            rows=[re.sub(r'\x1b\[[0-9;]*m','',r) for r in rows]
+            y=next(i for i,r in enumerate(rows) if '▮' in r)
+            self.assertEqual(y,height-3)
+            count=rows[y].count('▮')
+            self.assertEqual(count,int((width-9)*.85))
+            self.assertTrue(rows[y].startswith('│'))
+        ui.settings.values['visualizer']['width_percent']='0'
+        rows=ui.compose('A','B','C',size=(100,30),visual=('▮'*32,))
+        self.assertEqual(sum(r.count('▮') for r in rows),32)

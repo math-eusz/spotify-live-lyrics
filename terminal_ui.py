@@ -17,7 +17,7 @@ DEFAULTS = {
                  'sync_offset': '0', 'type_ahead': '0.10', 'typing_mode': 'smooth'},
     'pages': {'mode': 'dynamic', 'min_lines': '2', 'max_lines': '6',
               'target_seconds': '12', 'pause_seconds': '2'},
-    'visualizer': {'mode': 'auto', 'style': 'bars', 'width': '32', 'height': '3',
+    'visualizer': {'mode': 'auto', 'style': 'bars', 'width': '32', 'width_percent': '85', 'bottom_margin': '1', 'height': '3',
                    'show_label': 'false', 'only_gaps': 'false', 'input': 'auto', 'sensitivity': '100'},
     'theme': {'mode': 'static'},
     'colors': {'text': '#DEDAD0', 'muted': '#88867F', 'accent': '#C8BA91',
@@ -115,6 +115,7 @@ class Settings:
             for section, name, low, high in (
                 ('playback', 'fps', 15, 240), ('pages', 'min_lines', 1, 16),
                 ('pages', 'max_lines', 1, 16), ('visualizer', 'width', 8, 100),
+                ('visualizer', 'width_percent', 0, 100), ('visualizer', 'bottom_margin', 0, 8),
                 ('visualizer', 'height', 1, 6), ('visualizer', 'sensitivity', 10, 500)):
                 if not low <= parser.getint(section, name) <= high:
                     raise ValueError(name)
@@ -232,13 +233,15 @@ class TerminalUI:
             put(header_y + 1, left + usable - len(total), total, 'muted')
             content_top = header_y + 3
         footer_y = height - edge - 2
-        footer = self.settings.flag('show_footer') and height >= 12
+        status = self.settings.error or notice or (source if self.settings.flag('show_source') else '')
+        footer = self.settings.flag('show_footer') and height >= 12 and (bool(status) or self.settings.flag('show_hints'))
         content_bottom = footer_y - 1 if footer else height - edge - 1
         visual = visual or ()
         visual_room = len(visual) + 2 if visual and height >= 16 else 0
-        visual_y = content_bottom - len(visual) + 1
+        visual_bottom = min(content_bottom, height - edge - 1 - int(self.settings.values['visualizer']['bottom_margin']))
+        visual_y = visual_bottom - len(visual) + 1
         if visual_room:
-            content_bottom -= visual_room
+            content_bottom = visual_y - 3
         room = max(1, content_bottom - content_top + 1)
         wrap_width = min(usable, int(layout['lyrics_width']))
         if help_open:
@@ -282,7 +285,13 @@ class TerminalUI:
             x = left + (free // 2 if layout['alignment'] == 'center' else free if layout['alignment'] == 'right' else 0)
             put(y, x, crop(text, usable - (x-left)), 'accent' if active else 'text')
         if visual_room:
+            percent = int(self.settings.values['visualizer']['width_percent'])
+            target = max(1, int(usable * percent / 100))
             for y, row in enumerate(visual, visual_y):
+                # Stretch only spectrum glyphs, never explanatory labels. Keep CAVA
+                # capture stable during resize; these remain the same audio bins.
+                if percent and row and all(c in ' ▮•▁▂▃▄▅▆▇█' for c in row):
+                    row = ''.join(row[min(len(row)-1, int(x*len(row)/target))] for x in range(target))
                 row = crop(row, usable)
                 put(y, left + max(0, (usable - cells(row)) // 2), row, 'accent')
         if footer:
