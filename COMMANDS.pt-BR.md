@@ -1,6 +1,8 @@
-# sylrics 0.7.2 — referência de comandos
+# 🎛️ Comandos do sylrics · v0.7.2
 
-As alterações de preferências ficam salvas. Os atalhos dentro do player são temporários.
+[← Página inicial](README.md) · [🚀 Instalação](QUICKSTART.pt-BR.md)
+
+As alterações de preferências ficam salvas. Os atalhos dentro do programa são temporários, exceto **0**, que salva os padrões com backup.
 
 | Comando | Função |
 |---|---|
@@ -17,7 +19,7 @@ As alterações de preferências ficam salvas. Os atalhos dentro do player são 
 | `sylrics reading rolling` | Manter frases recentes e retirar as antigas individualmente. |
 | `sylrics typing smooth` | Digitação contínua padrão. |
 | `sylrics typing words-beta` | Digitação com pequenas pausas entre palavras. |
-| `sylrics highlight bold-beta` / `off` | Ativar ou desativar negrito estimado da palavra atual. |
+| `sylrics highlight bold-beta` / `off` | Ativar ou desativar negrito e sublinhado da palavra em digitação (estimado). |
 | `sylrics font 18` / `sylrics font` | Abrir outra janela Kitty com tamanho escolhido ou salvo. |
 | `sylrics theme dynamic` | Usar a paleta fornecida pelo terminal. |
 | `sylrics theme warm` / `purple` / `ocean` / `mono` | Aplicar cores fixas. |
@@ -30,12 +32,16 @@ As alterações de preferências ficam salvas. Os atalhos dentro do player são 
 | `sylrics config list` / `path` / `edit` | Listar valores, localizar ou editar o INI. |
 | `sylrics config get CHAVE` | Consultar uma configuração. |
 | `sylrics config set CHAVE VALOR` | Salvar uma configuração com validação e backup. |
+| `sylrics gaps dots-beta` / `sylrics gaps off` | Ativar ou desativar os pontos animados nos intervalos (beta). |
+| `sylrics click-seek on` / `sylrics click-seek off` | Ativar ou desativar a busca ao clicar em palavras visíveis (beta). |
+| `sylrics font 18 --family "monospace"` | Escolher tamanho e família de fonte instalada, em uma nova janela Kitty. |
+| `sylrics config reset` | Restaurar todos os padrões e salvar backup antes da mudança. |
 | `sylrics config restore` | Restaurar o último backup, salvando antes o estado atual. |
 | `sylrics --config ~/alternativo.ini` | Usar outro arquivo de configuração. |
 
 Nas linhas com alternativas separadas por `/`, execute apenas uma alternativa.
 
-## Personalização com config set
+## 🎨 Personalização pelo terminal
 
 Exemplo: `sylrics config set visualizer.bar_spacing 2`.
 
@@ -53,6 +59,10 @@ Exemplo: `sylrics config set visualizer.bar_spacing 2`.
 | `visualizer.only_gaps` | true/false: visualizar só nos intervalos vocais estimados. |
 | `visualizer.show_label` | true/false: identificar áudio/animação/pausa. |
 | `visualizer.input` | auto, pipewire ou pulse, conforme suporte do CAVA. |
+| `layout.active_bold` | true/false: negrito da frase atual. |
+| `layout.click_seek` | true/false: clique nas palavras (beta). |
+| `layout.font_family` | Família instalada; aplicada ao abrir com `sylrics font`. |
+| `pages.gap_animation` | true/false: pontos nos intervalos (beta); false em instalações novas. |
 | `layout.history_dim` | true/false: frases anteriores em cor discreta. |
 | `layout.alignment` | left, center ou right. |
 | `layout.vertical` | top, center ou bottom. |
@@ -80,9 +90,9 @@ Também existem as chaves correspondentes aos comandos próprios: `pages.mode`,
 `visualizer.mode`, `playback.source`, `playback.typing_mode`, `layout.word_highlight`,
 `layout.font_size` (6–48; só ao abrir com font) e `theme.mode` (static/dynamic).
 
-## Teclas dentro do player
+## ⌨️ Atalhos durante a reprodução
 
-| Tecla minúscula | Ação |
+| Tecla | Ação |
 |---|---|
 | q / Ctrl+C | Encerrar. |
 | Espaço | Pausar/retomar. |
@@ -94,20 +104,37 @@ Também existem as chaves correspondentes aos comandos próprios: `pages.mode`,
 | s | Exibir/ocultar informação da fonte. |
 | + / - | Ajustar sincronização em 50 ms. |
 | ? | Abrir/fechar ajuda. |
+| 0 | Restaurar e salvar os padrões, com backup automático. |
+| Clique esquerdo | Buscar o trecho da palavra visível, quando habilitado. |
 
 Os perfis alteram apresentação e leitura, mas preservam fonte das letras, cores,
 tamanho da fonte, efeitos beta e sincronização. A restauração usa o último backup;
 como ela salva o estado atual, restaurar novamente pode alternar entre dois estados.
 
 
-# v0.7.2 — Clique nas palavras, intervalos beta e restauração de padrões
+## 🧪 Entenda os recursos beta
 
-Os intervalos animados agora são uma opção beta explícita. `sylrics gaps dots-beta` ativa e `sylrics gaps off` desativa, inclusive na introdução. Instalações novas deixam o recurso desligado; atualizações preservam a escolha existente. Pausas curtas entre versos não apagam mais a letra. O limite é `pages.pause_seconds` (padrão: 2 segundos). Sem marcações vocais, a detecção continua estimada.
+`words-beta` mantém a animação caractere por caractere e acrescenta pequenas pausas entre palavras. `bold-beta` destaca a palavra em digitação, não uma palavra reconhecida por análise da voz.
 
-Clique com o botão esquerdo em uma palavra visível para buscar aquele trecho. `sylrics click-seek on` ativa e `sylrics click-seek off` desativa. O clique é beta e vem ativado por padrão. Com tempos por sílaba, usa o início da sílaba que contém o começo da palavra; com tempos apenas por linha, estima o início pelo ritmo da digitação. Não garante alinhamento exato com a voz. Requer playerctl e suporte a mouse do terminal. Não muda o estado reproduzindo/pausado. O controle recusa cliques após mudança de faixa ou redimensionamento ainda não desenhado. Ajuda, espaços e letras ainda invisíveis não são alvos.
+`dots-beta` esconde as frases durante intervalos e mostra pontos animados. A duração mínima para considerar uma pausa vem de `pages.pause_seconds`. Ao desativar, as frases permanecem durante os intervalos e a introdução usa uma mensagem estática.
 
-Pressione **0** dentro do programa para restaurar as configurações padrão e limpar os ajustes da sessão. O comando equivalente é `sylrics config reset`. Ambos salvam backup antes da alteração. Use `sylrics config restore` para recuperar a configuração anterior. A restauração inclui tema, fonte de letras, visualizador e recursos beta; não remove o cache nem a ponte. O tamanho e a família da fonte do terminal são aplicados ao reabrir com `sylrics font`.
+O clique usa tempos de início de sílaba quando disponíveis; com tempos apenas por linha, estima a posição da palavra. Requer playerctl e suporte a mouse no terminal. Para voltar a selecionar texto sem captura de clique pelo programa, use `sylrics click-seek off`.
 
-Revisão: processamento de eventos de mouse recebidos em partes, mapeamento de palavras conforme quebra de linha e alinhamento, suporte a caracteres largos, buscas fora do loop visual, aplicação imediata de pequenos saltos no relógio e restauração do modo de mouse ao sair. Comandos e completamentos Fish/Bash atualizados.
+## 💡 Exemplos prontos
 
-Testes automatizados incluem o fluxo completo em pseudoterminal com playerctl simulado. A reprodução dentro do Spotify do usuário ainda precisa de validação.
+```sh
+# Espaço entre barras: 0 junta; 2 deixa mais afastado
+sylrics config set visualizer.bar_spacing 2
+
+# Suavização do visualizador em milissegundos
+sylrics config set visualizer.smoothing_ms 180
+
+# Máximo de seis frases no modo de leitura contínua
+sylrics reading rolling
+sylrics config set pages.max_lines 6
+
+# Abrir a configuração no VS Code, se instalado
+EDITOR=code sylrics config edit
+```
+
+Os nomes dos comandos e valores (`true`, `false`, `rolling` etc.) permanecem como usados pelo programa. `true` ativa e `false` desativa. Execute `sylrics config list` para ver os valores atuais.

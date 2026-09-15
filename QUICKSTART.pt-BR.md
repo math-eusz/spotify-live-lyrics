@@ -1,76 +1,136 @@
-# sylrics 0.7.2 — instalação e primeiros passos
+# 🚀 Instalação e primeiros passos
 
-Feche a versão anterior com Ctrl+C. Baixe e instale:
+[← Página inicial](README.md) · [🎛️ Todos os comandos](COMMANDS.pt-BR.md)
 
-```fish
-cd ~/Downloads
+## 🐧 Antes de começar
+
+O sylrics funciona em Linux, com **Python 3.10+** e **playerctl**. O Spotify precisa estar aberto e reproduzindo uma música. Spicetify e Spicy Lyrics são opcionais.
+
+| Dependência | Para que serve | Obrigatória? |
+|---|---|---|
+| Python 3.10+ | Executar o programa. | Sim |
+| playerctl | Consultar e controlar o player no modo nativo; necessário para os controles e cliques. | Sim, para o uso recomendado |
+| curl e tar | Baixar e extrair o pacote pelos comandos abaixo. | Para este método de instalação |
+| CAVA | Fazer o visualizador acompanhar o áudio. | Não |
+| syncedlyrics | Oferecer uma fonte adicional de letras. O LRCLIB já é usado diretamente. | Não |
+| Kitty | Abrir uma janela com tamanho e família de fonte definidos por `sylrics font`. | Apenas para esse comando |
+
+No Arch Linux / CachyOS:
+
+```sh
+sudo pacman -S --needed python playerctl curl tar
+```
+
+Para adicionar o visualizador de áudio:
+
+```sh
+sudo pacman -S --needed cava
+```
+
+Em outras distribuições, use o gerenciador de pacotes correspondente. Estes comandos não instalam o Spotify.
+
+## 📥 Instalar ou atualizar
+
+Se o sylrics estiver aberto, encerre com `q` ou `Ctrl+C`. Depois:
+
+```sh
 curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.7.2/sylrics-0.7.2.tar.gz
 tar -xzf sylrics-0.7.2.tar.gz
 cd sylrics-0.7.2
 sh install.sh
 ```
 
-O instalador faz backup, preserva suas configurações e não altera o Spicetify.
-Abra outro terminal e execute `sylrics` (ou `~/.local/bin/sylrics` no terminal atual).
-No Arch/CachyOS, o modo nativo precisa de `playerctl`; CAVA é opcional para áudio real.
+O instalador salva o programa em `~/.local/share/spotify-live-lyrics/` e cria os comandos em `~/.local/bin/`. Ele preserva as preferências existentes e faz backup dos arquivos substituídos na pasta `backup/` do programa. Não precisa ser executado com `sudo` e não altera o Spicetify.
 
-## Experimentar a 0.7.2
+Abra um **novo terminal**, coloque uma música no Spotify e rode:
 
-```fish
-sylrics preset studio
-sylrics config set visualizer.bar_spacing 1
-sylrics config set visualizer.bar_width 1
-sylrics reading rolling
+```sh
+sylrics
 ```
 
-O perfil studio combina letras centralizadas e um visualizador amplo. Minimal
-oculta moldura e visualizador; cinema usa leitura contínua e visualização nos
-intervalos. Nenhum perfil muda tema, fonte das letras, tamanho da fonte ou sincronização.
+O nome antigo `slyrics` continua funcionando.
 
-O modo rolling mantém as frases recentes e retira apenas a mais antiga quando
-necessário. O máximo continua ajustável em `pages.max_lines`; pausas longas iniciam
-um novo trecho. Use `sylrics reading dynamic` para retornar aos blocos adaptativos.
+## 🎨 Escolher um visual
 
-## Ajustes rápidos
+Para letras centralizadas com visualizador amplo:
 
-```fish
-sylrics config set visualizer.bar_spacing 2
-sylrics config set visualizer.bar_width 2
-sylrics config set layout.history_dim false
+```sh
+sylrics preset studio
+```
+
+Para uma interface discreta, sem visualizador:
+
+```sh
+sylrics preset minimal
+```
+
+Para usar a paleta do terminal, incluindo as cores do papel de parede quando o sistema fornece essa integração:
+
+```sh
+sylrics theme dynamic
+```
+
+Para letras maiores em uma nova janela Kitty:
+
+```sh
+sylrics font 18
+```
+
+## 🧪 Experimentar os recursos beta
+
+Cada comando é opcional. Os ajustes ficam salvos.
+
+| Recurso | Ativar | Desativar |
+|---|---|---|
+| Pausas entre palavras digitadas | `sylrics typing words-beta` | `sylrics typing smooth` |
+| Destaque da palavra | `sylrics highlight bold-beta` | `sylrics highlight off` |
+| Pontos animados nos intervalos | `sylrics gaps dots-beta` | `sylrics gaps off` |
+| Clique para buscar uma palavra | `sylrics click-seek on` | `sylrics click-seek off` |
+
+O clique atua em palavras visíveis e precisa de playerctl e de um terminal com suporte a mouse. Com tempos apenas por linha, a posição é estimada. Ele não altera o estado pausado/em reprodução.
+
+## ↩️ Voltar ao padrão
+
+Dentro do programa, pressione **0**. Pelo terminal, execute:
+
+```sh
+sylrics config reset
+```
+
+Isso salva um backup e restaura todas as preferências padrão, incluindo cores, fonte de letras e visualizador. Para recuperar a configuração anterior:
+
+```sh
 sylrics config restore
 ```
 
-O espaçamento aceita 0–5 colunas; a espessura, 1–4. O último comando restaura o
-backup mais recente da configuração, salvando antes o estado que ele vai substituir.
-Ele recupera o último backup, não uma sessão inteira. Repetir o comando pode
-alternar entre os dois últimos estados, pois a restauração também gera backup.
+A restauração também cria backup: executá-la repetidamente pode alternar entre os dois últimos estados. Mudanças no tamanho e na família da fonte são aplicadas à nova janela aberta por `sylrics font`.
 
-Pressione `?` para ajuda, `r` para alternar a leitura e `h` para o destaque beta.
-Os atalhos são temporários; comandos de configuração ficam salvos e aplicam-se ao vivo.
+## 🩺 Problemas comuns
 
-## Funcionalidades preservadas
+| Situação | O que fazer |
+|---|---|
+| `sylrics: comando não encontrado` | Abra outro terminal ou rode `~/.local/bin/sylrics`. Em Bash/Zsh, confira se `~/.local/bin` está no PATH. |
+| Spotify não aparece | Abra o aplicativo, coloque uma faixa e rode `sylrics doctor`. O player precisa ser compatível com playerctl. |
+| A letra não foi encontrada | Tente outra faixa. Nem toda música tem letra sincronizada nas fontes disponíveis. |
+| A letra aparece cedo ou tarde | Use `+` e `-` durante a reprodução; para salvar, use `sylrics config set playback.sync_offset 0.10`. Positivo adianta, negativo atrasa. |
+| O visualizador não acompanha o som | Instale CAVA e teste `sylrics visualizer spectrum`. No modo `activity`, a animação é decorativa. |
+| Quero ocultar o visualizador | Execute `sylrics visualizer off`. |
+| Os “...” aparecem na hora errada | Execute `sylrics gaps off`. A detecção de pausas sem marcação ainda é beta e estimada. |
+| O clique não vai exatamente à palavra | A precisão depende dos tempos recebidos. Letras com apenas tempos por linha usam estimativa. |
+| Editei a configuração e deu erro | Use `sylrics config restore` para recuperar um backup ou `sylrics config reset` para voltar aos padrões. |
+| Quero usar sem Spicy Lyrics | Execute `sylrics source native`. |
 
-`sylrics theme dynamic` acompanha a paleta do terminal. `sylrics font 18` abre
-uma nova janela Kitty com esse tamanho. `sylrics typing words-beta` anima as palavras
-com pausas breves; `sylrics highlight bold-beta` destaca a palavra em digitação.
-Esses efeitos estimam o ritmo da voz. `sylrics source native` funciona sem Spicy Lyrics.
-`sylrics visualizer off` oculta o visualizador; `auto` usa CAVA ou animação decorativa.
+Teste uma prévia independente do Spotify com `sylrics demo`. Para relatar um problema, inclua a saída de `sylrics doctor`, a versão e o nome da música na [página de issues](https://github.com/math-eusz/spotify-live-lyrics/issues).
 
-As letras ficam em `~/.local/share/spotify-live-lyrics/lrc/`, com limite de 10,
-limpeza ao iniciar/salvar e coleta dos LRC sincronizados soltos na pasta pessoal.
-As configurações ficam em `~/.config/spotify-live-lyrics/ui.ini`.
+## 📁 Onde ficam os arquivos?
 
-Consulte [COMMANDS.pt-BR.md](COMMANDS.pt-BR.md) para os comandos e limites.
+| Conteúdo | Local padrão |
+|---|---|
+| Configuração | `~/.config/spotify-live-lyrics/ui.ini` |
+| Backups de configuração | `~/.config/spotify-live-lyrics/backup/` — até 20 backups |
+| Programa | `~/.local/share/spotify-live-lyrics/` |
+| Backup de instalação | Pasta `backup/` dentro do programa |
+| Letras sincronizadas | Pasta `lrc/` dentro do programa — até 10 arquivos |
+| Executáveis | `~/.local/bin/sylrics` e `~/.local/bin/slyrics` |
 
-
-# v0.7.2 — Clique nas palavras, intervalos beta e restauração de padrões
-
-Os intervalos animados agora são uma opção beta explícita. `sylrics gaps dots-beta` ativa e `sylrics gaps off` desativa, inclusive na introdução. Instalações novas deixam o recurso desligado; atualizações preservam a escolha existente. Pausas curtas entre versos não apagam mais a letra. O limite é `pages.pause_seconds` (padrão: 2 segundos). Sem marcações vocais, a detecção continua estimada.
-
-Clique com o botão esquerdo em uma palavra visível para buscar aquele trecho. `sylrics click-seek on` ativa e `sylrics click-seek off` desativa. O clique é beta e vem ativado por padrão. Com tempos por sílaba, usa o início da sílaba que contém o começo da palavra; com tempos apenas por linha, estima o início pelo ritmo da digitação. Não garante alinhamento exato com a voz. Requer playerctl e suporte a mouse do terminal. Não muda o estado reproduzindo/pausado. O controle recusa cliques após mudança de faixa ou redimensionamento ainda não desenhado. Ajuda, espaços e letras ainda invisíveis não são alvos.
-
-Pressione **0** dentro do programa para restaurar as configurações padrão e limpar os ajustes da sessão. O comando equivalente é `sylrics config reset`. Ambos salvam backup antes da alteração. Use `sylrics config restore` para recuperar a configuração anterior. A restauração inclui tema, fonte de letras, visualizador e recursos beta; não remove o cache nem a ponte. O tamanho e a família da fonte do terminal são aplicados ao reabrir com `sylrics font`.
-
-Revisão: processamento de eventos de mouse recebidos em partes, mapeamento de palavras conforme quebra de linha e alinhamento, suporte a caracteres largos, buscas fora do loop visual, aplicação imediata de pequenos saltos no relógio e restauração do modo de mouse ao sair. Comandos e completamentos Fish/Bash atualizados.
-
-Testes automatizados incluem o fluxo completo em pseudoterminal com playerctl simulado. A reprodução dentro do Spotify do usuário ainda precisa de validação.
+A configuração respeita `XDG_CONFIG_HOME`. O programa recolhe arquivos LRC sincronizados soltos na pasta pessoal e mantém apenas os dez mais recentes na pasta de letras. Consulte `sylrics cache info` para conferir o local usado.

@@ -1,105 +1,73 @@
-# v0.7.2 — Clique nas palavras, intervalos beta e restauração de padrões
+# 📦 Histórico de versões
 
-Os intervalos animados agora são uma opção beta explícita. `sylrics gaps dots-beta` ativa e `sylrics gaps off` desativa, inclusive na introdução. Instalações novas deixam o recurso desligado; atualizações preservam a escolha existente. Pausas curtas entre versos não apagam mais a letra. O limite é `pages.pause_seconds` (padrão: 2 segundos). Sem marcações vocais, a detecção continua estimada.
+[← Página inicial](README.md) · [⬇️ Downloads das versões](https://github.com/math-eusz/spotify-live-lyrics/releases)
 
-Clique com o botão esquerdo em uma palavra visível para buscar aquele trecho. `sylrics click-seek on` ativa e `sylrics click-seek off` desativa. O clique é beta e vem ativado por padrão. Com tempos por sílaba, usa o início da sílaba que contém o começo da palavra; com tempos apenas por linha, estima o início pelo ritmo da digitação. Não garante alinhamento exato com a voz. Requer playerctl e suporte a mouse do terminal. Não muda o estado reproduzindo/pausado. O controle recusa cliques após mudança de faixa ou redimensionamento ainda não desenhado. Ajuda, espaços e letras ainda invisíveis não são alvos.
+Este histórico resume a evolução do sylrics em português. As primeiras versões foram numeradas retrospectivamente a partir das entregas completas do projeto. Cada versão publicada mantém seu código e seus arquivos originais.
 
-Pressione **0** dentro do programa para restaurar as configurações padrão e limpar os ajustes da sessão. O comando equivalente é `sylrics config reset`. Ambos salvam backup antes da alteração. Use `sylrics config restore` para recuperar a configuração anterior. A restauração inclui tema, fonte de letras, visualizador e recursos beta; não remove o cache nem a ponte. O tamanho e a família da fonte do terminal são aplicados ao reabrir com `sylrics font`.
+## 🖱️ 0.7.2 — Interação e recuperação
 
-Revisão: processamento de eventos de mouse recebidos em partes, mapeamento de palavras conforme quebra de linha e alinhamento, suporte a caracteres largos, buscas fora do loop visual, aplicação imediata de pequenos saltos no relógio e restauração do modo de mouse ao sair. Comandos e completamentos Fish/Bash atualizados.
+Clique nas palavras para buscar um trecho, com tempos por sílaba quando disponíveis e estimativas quando há apenas tempos por linha. Novos comandos `click-seek on/off` e `gaps dots-beta/off`. A animação de intervalos passou a ser beta explícita, desativada em instalações novas; pausas curtas não apagam as letras.
 
-Testes automatizados incluem o fluxo completo em pseudoterminal com playerctl simulado. A reprodução dentro do Spotify do usuário ainda precisa de validação.
+A tecla **0** e `config reset` restauram os padrões com backup. A revisão incluiu eventos de mouse recebidos em partes, palavras com quebra de linha, caracteres largos, bloqueio de clique após troca de faixa e atualização imediata do relógio em pequenos saltos. **67 testes automatizados passaram.**
 
-# v0.7.1 — Visualizador corrigido e intervalos animados
+## 💬 0.7.1 — Intervalos e legibilidade
 
-Corrige o redimensionamento do espectro: colunas inteiras são preservadas, evitando barras deformadas pela interpolação independente das linhas. Espaçamento, espessura e suavização continuam disponíveis.
+Correção das barras deformadas ao redimensionar, pontos animados nos intervalos vocais, negrito na frase atual e sublinhado no destaque beta de palavra. O comando de fonte passou a aceitar uma família instalada no sistema. **59 testes automatizados passaram.**
 
-Durante a introdução e os intervalos vocais, as frases são substituídas por pontos animados. A animação acompanha a posição de reprodução e congela ao pausar. Marcas explícitas de silêncio são respeitadas imediatamente; finais estimados recebem tolerância de 500 ms. Intervalos curtos não apagam as frases. Sem tempos detalhados, isso é uma estimativa, não detecção de voz.
+## 🎛️ 0.7.0 — Mais controle sobre o visual
 
-A frase atual recebe cor de destaque e negrito, enquanto a palavra no modo beta recebe também sublinhado. O destaque não aparece em mensagens de intervalo ou na ajuda.
+Espaçamento e espessura das barras, leitura contínua com retirada individual de frases, perfis `minimal`, `studio` e `cinema`, histórico de frases em cor discreta e restauração da última configuração. Revisão da ajuda, completamentos de comandos e otimização da resolução de cores na renderização. **54 testes automatizados passaram.**
 
-O comando de fonte aceita uma família monoespaçada instalada, sem alterar a configuração global do Kitty:
+## 📁 0.6.4 — Letras organizadas
 
-```sh
-sylrics font 16 --family "monospace"
-sylrics config set layout.active_bold false
-sylrics config set pages.gap_animation false
-```
+Pasta própria de arquivos LRC dentro do programa, limite de dez letras e remoção dos arquivos mais antigos ao iniciar ou salvar. Recolhimento de letras sincronizadas soltas na pasta pessoal e contenção dos arquivos criados por comandos externos de busca.
 
-O tamanho e a família se aplicam à janela aberta por `sylrics font`. A instalação mantém as preferências e cria backup da versão anterior. Spicy Lyrics continua opcional.
+## 🌊 0.6.3 — Suavização e destaque
 
-# 0.7.0
+Suavização do visualizador baseada no tempo, barras com alturas fracionárias, destaque beta da palavra e abertura de uma janela Kitty com tamanho de fonte personalizável.
 
-Configurable visualizer bar spacing (0–5 cells) and thickness (1–4 cells), with
-fractional resampling that keeps gaps stable on resize. Rolling lyric windows
-retain context until the next phrase and reset after vocal gaps. Minimal, studio
-and cinema presets preserve colors, lyric source, synchronization and font size.
-Previous lines can be dimmed; keyboard help adapts to smaller windows. New r/h
-shortcuts control reading mode and beta highlight. Config restore recovers the
-last backup, including after invalid manual edits. Resolve each ANSI color once
-per composed frame instead of once per row/style run.
+## ✍️ 0.6.2 — Digitação por palavra
 
-# 0.6.4
+Animação caractere por caractere dentro de cada palavra, seguida de pequenas pausas. Visualizador mais largo, com margem inferior e largura proporcional configuráveis.
 
-Store plain synchronized LRC files inside the application data directory, retaining
-the ten newest by modification time. Import loose home-directory LRC files on
-startup; isolate syncedlyrics side effects in a temporary directory. Share the
-bounded store with native lyric loading and cache commands.
+## 🎨 0.6.1 — Tema dinâmico
 
-# 0.6.3
+Interface revisada, integração com a paleta de cores do terminal e modo beta de exibição por palavras. O tema pode acompanhar as cores do papel de parede quando o ambiente fornece essa paleta ao terminal.
 
-Time-based spectrum smoothing and fractional-height bars. Optional estimated
-word highlight in bold, preserving wrapping and alignment. Kitty font-size
-launcher with saved preferences; no global terminal configuration changes.
+## 🐧 0.6.0 — Uso independente
 
-# 0.6.2
+Modo nativo como padrão, integração opcional com Spicy Lyrics, busca pelo LRCLIB, páginas dinâmicas e visualizador configurável com CAVA. Introdução do comando `sylrics`, perfis de cores, configuração pelo terminal, atalhos, diagnóstico, demonstração e instalação por pacote de código-fonte.
 
-Animated characters within words-beta, with short holds that fit the line timeline.
-Visualizer expands to 85% of available width, moves lower, and supports configurable
-width percentage and bottom margin. Empty footer no longer reserves space.
+## 🖼️ 0.5.0 — Interface personalizável
 
-# 0.6.1
+Letras centralizadas, borda, título, artista, progresso e estado de reprodução. Configuração por arquivo INI com aplicação ao vivo, quebra de linhas e adaptação ao tamanho do terminal.
 
-Terminal-palette dynamic theme, on-demand keyboard help, optional visualizer labels,
-and opt-in whole-word typing (beta). Fixed live configuration precedence after
-session shortcuts. Existing native fallback and smooth typing remain available.
+## 🔧 0.4.2 — Reparo de instalações
 
-# Changelog
+Instalador de reparo para substituir versões antigas da ponte, com backup, verificação dos arquivos e preservação da configuração existente.
 
-Retrospective release numbering for the complete versions delivered during development. Intermediate upload commits are not separate releases. Download names such as `v3` and `v4` were installer revisions, not prior semantic-version tags.
+## 🔁 0.4.1 — Retorno automático à fonte nativa
 
-## v0.6.0 — Standalone lyrics, dynamic pages and visualizer
+Busca automática pelo syncedlyrics quando o Spicy Lyrics não fornece tempos utilizáveis, cache por música e proteção contra resultados atrasados de faixas anteriores. Restauração da digitação contínua.
 
-Native playback by default; optional Spicy Lyrics; cadence-based pages with configurable limits; CAVA spectrum or labeled activity animation; command-based live configuration; themes and keyboard controls; real `sylrics` executable and source archive installer with migration backups. The existing typewriter effect is preserved. No AUR/yay packaging is included.
+## 🔌 0.4.0 — Ponte com Spicy Lyrics
 
-[Release notes](releases/notes/v0.6.0.md) · [Source snapshot](https://github.com/math-eusz/spotify-live-lyrics/tree/v0.6.0)
+Primeira integração local entre a extensão do Spotify e o terminal, com recebimento de letras e estado da reprodução. Esta versão histórica ainda exigia uso manual do modo antigo quando faltavam tempos; a correção chegou na 0.4.1.
 
-## v0.5.0 — Customizable terminal interface
+## ⏱️ 0.3.0 — Sincronização e pausas
 
-[Release notes](releases/notes/v0.5.0.md) · [Source snapshot](https://github.com/math-eusz/spotify-live-lyrics/tree/8e86603794090904a19604d8f7f1af0eea379731)
+Consultas em segundo plano, adiantamento de 100 ms na digitação, separação de pausas e permanência da quarta frase até o início da quinta. Redução de redesenhos e proteção contra resultados de músicas já trocadas.
 
-## v0.4.2 — Verified installation repair
+## 📖 0.2.0 — Blocos de quatro linhas
 
-[Release notes](releases/notes/v0.4.2.md) · [Source snapshot](https://github.com/math-eusz/spotify-live-lyrics/tree/194cc83a661bdc15a75c25eab6ed8c99ddfddd72)
+Frases anteriores permanecem visíveis enquanto a linha atual é digitada. A tela passa a ser organizada em blocos de até quatro linhas.
 
-## v0.4.1 — Automatic fallback and continuous typing
+## 🌱 0.1.0 — Primeira versão
 
-[Release notes](releases/notes/v0.4.1.md) · [Source snapshot](https://github.com/math-eusz/spotify-live-lyrics/tree/cd0b4a2dc220028905dbd95d4aabaa128f20291f)
+Letras do Spotify no terminal com playerctl e syncedlyrics, digitação progressiva, interpolação da posição e ajuste de sincronização.
 
-## v0.4.0 — Spicy Lyrics local bridge
+---
 
-[Release notes](releases/notes/v0.4.0.md) · [Source snapshot](https://github.com/math-eusz/spotify-live-lyrics/tree/3c855f3881ea9feb396195e0e1dd2bb14334ebdd)
+**Sobre os testes:** as verificações automatizadas utilizam dados e processos simulados. A precisão na reprodução real depende dos tempos fornecidos pelas letras, do player e do terminal.
 
-## v0.3.0 — Smoother timing and vocal pauses
-
-[Release notes](releases/notes/v0.3.0.md) · [Source snapshot](https://github.com/math-eusz/spotify-live-lyrics/tree/644499646e6ba9c9a1d6689408ab1845f326b3d8)
-
-## v0.2.0 — Four-line lyric blocks
-
-[Release notes](releases/notes/v0.2.0.md) · [Source snapshot](https://github.com/math-eusz/spotify-live-lyrics/tree/b994f1e7518b088f9f286330018e2c5b69195c13)
-
-## v0.1.0 — Original terminal lyrics
-
-[Release notes](releases/notes/v0.1.0.md) · [Source snapshot](https://github.com/math-eusz/spotify-live-lyrics/tree/1dd12470d2efb92a1872a75e355ba1332bb6f86e)
-
-
+**Documentação atualizada:** página inicial, instalação e comandos reorganizados em português após a 0.7.2. Esta revisão de documentação não cria uma nova versão do programa.

@@ -1,12 +1,50 @@
-# sylrics · 0.7.2
+<div align="center">
 
-Synchronized lyrics in your Linux terminal, with smooth typing, an optional audio
-visualizer, adaptive reading modes and live customization. Spicy Lyrics is optional.
+# 🎵 sylrics
 
-## Install or update
+**Sua música, palavra por palavra, no terminal.**
 
-Requires Python 3.10+ and `playerctl`. CAVA enables real audio visualization;
-`syncedlyrics` is an optional lyric provider. The native fallback also uses LRCLIB.
+Letras sincronizadas, visualizador de áudio e uma interface que você pode deixar do seu jeito.
+
+**🐧 Linux · 🐍 Python 3.10+ · 📦 v0.7.2 · 📜 MIT**
+
+[🚀 Instalar](#-instalação) · [🎛️ Comandos](COMMANDS.pt-BR.md) · [📖 Primeiros passos](QUICKSTART.pt-BR.md) · [📦 Versões](https://github.com/math-eusz/spotify-live-lyrics/releases)
+
+</div>
+
+---
+
+## ✨ O que você pode fazer
+
+| Recurso | Como funciona |
+|---|---|
+| 🎶 Letras em tempo real | Acompanhe a música com digitação caractere por caractere. |
+| 🌊 Visualizador | Escolha barras, ondas ou pontos; ajuste largura, espaçamento e suavização. |
+| 📖 Leitura adaptável | Use blocos fixos, blocos por duração e pausas ou frases que saem individualmente. |
+| 🎨 Personalização | Mude cores, alinhamento, margens, fonte e destaque das letras. |
+| 🖱️ Clique nas palavras · beta | Volte ao trecho correspondente clicando em uma palavra visível. |
+| 💬 Intervalos animados · beta | Substitua as letras por “...” durante as pausas, se quiser. |
+| 💾 Preferências e backup | Ajuste pelo terminal ou pelo arquivo de configuração e restaure quando precisar. |
+
+**O Spicy Lyrics é opcional.** O modo nativo é o padrão e funciona sem Spicetify. É necessário ter um player compatível em execução; o sylrics acompanha a reprodução, não toca as músicas sozinho.
+
+## 🚀 Instalação
+
+Você precisa de **Linux, Python 3.10+, playerctl, curl e tar**. Para o visualizador reagir ao áudio, instale também o **CAVA**.
+
+No **Arch Linux / CachyOS**:
+
+```sh
+sudo pacman -S --needed python playerctl curl tar
+```
+
+Visualizador de áudio opcional:
+
+```sh
+sudo pacman -S --needed cava
+```
+
+Baixe e instale a versão atual:
 
 ```sh
 curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.7.2/sylrics-0.7.2.tar.gz
@@ -15,114 +53,134 @@ cd sylrics-0.7.2
 sh install.sh
 ```
 
-Run `sylrics` in a new terminal. `slyrics` remains an alias. The installer backs up
-replaced program files and preserves preferences, lyrics and bridge configuration.
-It does not require sudo or modify Spicetify. No AUR package is provided.
-
-[Portuguese installation guide](QUICKSTART.pt-BR.md) · [Command reference](COMMANDS.pt-BR.md)
-
-## New in 0.7.2
-
-- Separate bar spacing and width, with proportional layout and gradual resampling.
-- Rolling reading mode: retain recent phrases instead of clearing the entire block.
-- Minimal, studio and cinema presets; source, colors, font and timing stay unchanged.
-- Dimmed history, compact help for smaller windows, and keyboard reading/highlight toggles.
-- Restore the last saved configuration backup, even after a malformed manual edit.
-- Cached color resolution per composed frame; the unchanged-frame cache remains active.
+Abra um novo terminal, coloque uma música no Spotify e execute:
 
 ```sh
-sylrics preset studio
-sylrics config set visualizer.bar_spacing 1
-sylrics config set visualizer.bar_width 2
+sylrics
+```
+
+> 💡 Já usa o programa? Feche com `q` ou `Ctrl+C` e execute a mesma instalação. Seus ajustes são preservados e os arquivos substituídos recebem backup. O instalador do sylrics não precisa de `sudo`.
+
+Em outras distribuições Linux, instale as dependências pelo gerenciador de pacotes correspondente. Consulte o [guia de instalação](QUICKSTART.pt-BR.md) para detalhes e solução de problemas.
+
+## 🎨 Deixe com a sua cara
+
+Comece por um perfil:
+
+| Perfil | Visual |
+|---|---|
+| `sylrics preset studio` | Letras centralizadas e visualizador amplo. |
+| `sylrics preset minimal` | Leitura discreta, sem borda nem visualizador. |
+| `sylrics preset cinema` | Mais espaço entre frases e visualizador nos intervalos. |
+
+Os perfis preservam suas cores, fonte das letras, tamanho da fonte e ajustes de sincronização.
+
+Alguns ajustes para experimentar — execute os que quiser:
+
+```sh
+# Usar as cores da paleta do terminal
+sylrics theme dynamic
+
+# Remover as frases antigas individualmente
 sylrics reading rolling
-sylrics config set pages.max_lines 6
+
+# Aumentar o espaço entre as barras
+sylrics config set visualizer.bar_spacing 2
+
+# Abrir uma janela Kitty com fonte maior
+sylrics font 18
+```
+
+O tema dinâmico acompanha o papel de parede **quando seu sistema atualiza a paleta do terminal**. Transparência e desfoque são configurados no terminal e no ambiente gráfico.
+
+## 🧪 Recursos beta
+
+| Ativar | Desativar | Efeito |
+|---|---|---|
+| `sylrics typing words-beta` | `sylrics typing smooth` | Digita cada palavra com uma pequena pausa entre elas. |
+| `sylrics highlight bold-beta` | `sylrics highlight off` | Destaca a palavra em digitação com negrito e sublinhado. |
+| `sylrics gaps dots-beta` | `sylrics gaps off` | Mostra pontos animados nos intervalos vocais. |
+| `sylrics click-seek on` | `sylrics click-seek off` | Permite buscar um trecho clicando na palavra. |
+
+Os pontos vêm desligados em instalações novas; o clique vem ligado. Atualizações preservam as escolhas existentes.
+
+**Sobre a precisão:** o clique usa o início da sílaba quando esse dado está disponível. Com tempos apenas por linha, o momento da palavra é estimado. Pausas sem marcação também são estimadas; o programa não reconhece a voz ou os instrumentos pelo áudio.
+
+## ⌨️ Atalhos durante a reprodução
+
+| Tecla | Ação |
+|---|---|
+| `Espaço` | Reproduzir ou pausar. |
+| `n` / `p` | Próxima faixa / faixa anterior. |
+| `v` | Alternar o visualizador. |
+| `r` | Alternar o modo de leitura. |
+| `h` | Ativar ou desativar o destaque beta da palavra. |
+| `a` | Alternar o alinhamento. |
+| `s` | Mostrar ou ocultar a origem das letras. |
+| `+` / `-` | Adiantar ou atrasar a sincronização em 50 ms. |
+| `0` | Restaurar os padrões e salvar backup. |
+| `?` | Abrir ou fechar a ajuda. |
+| `q` / `Ctrl+C` | Encerrar. |
+
+Os ajustes feitos pelas teclas são temporários, **exceto `0`, que salva os padrões**. Os comandos de configuração ficam salvos.
+
+## 🔌 Fontes de letras e áudio
+
+| Modo | Quando usar |
+|---|---|
+| `sylrics source native` | Para usar sem Spicy Lyrics. Busca letras pelo syncedlyrics, se instalado, e pelo LRCLIB. |
+| `sylrics source auto` | Para preferir os tempos da ponte e recorrer ao modo nativo quando necessário. |
+| `sylrics source spicy` | Para usar o relógio da ponte; exige conexão com ela. Sem letra com tempos, tenta a busca nativa. |
+
+A ponte pode ser instalada com `sylrics bridge install`. **Essa ação altera o Spicetify e pode reiniciar o Spotify.** Depois, abra a letra da faixa no Spicy Lyrics.
+
+No visualizador, `auto` usa o CAVA quando há áudio disponível e, caso contrário, uma animação decorativa. `spectrum` usa somente áudio, `activity` é decorativo e `off` oculta o visualizador. O CAVA pode captar também o áudio de outros aplicativos.
+
+## 🛠️ Precisa ajustar ou recuperar algo?
+
+```sh
+# Verificar dependências e configuração
+sylrics doctor
+
+# Abrir uma prévia sem Spotify
+sylrics demo
+
+# Ver todas as configurações
+sylrics config list
+
+# Restaurar padrões com backup
+sylrics config reset
+
+# Recuperar a última configuração salva em backup
 sylrics config restore
 ```
 
-`bar_spacing` accepts 0–5 terminal cells; `bar_width` accepts 1–4. They apply to the
-rendered bands in bars, dots and wave styles. Tiny windows may reduce visible width.
-`visualizer.width` controls the input band count; proportional display width is
-controlled by `visualizer.width_percent`. Resizing does not restart audio capture.
+📁 Configuração: `~/.config/spotify-live-lyrics/ui.ini` — respeita `XDG_CONFIG_HOME`.
 
-## Reading and appearance
+📁 Programa: `~/.local/share/spotify-live-lyrics/`.
 
-`reading dynamic` groups phrases by timestamps, gaps and target duration. `reading
-fixed` uses fixed blocks. `reading rolling` keeps up to `pages.max_lines` recent
-phrases and starts fresh after a vocal gap. Changes use the actual phrase start,
-without an early page switch from typing anticipation. No mode detects musical mood.
+📁 Letras: `~/.local/share/spotify-live-lyrics/lrc/` — até **10 arquivos**, com limpeza dos mais antigos ao iniciar ou salvar. Letras LRC sincronizadas soltas na pasta pessoal são recolhidas para essa pasta.
 
-`typing smooth` is the continuous default. `typing words-beta` types each word and
-holds briefly, fitting pauses inside the line timeline. `highlight bold-beta`
-bolds the visible part of the current typed word; `highlight off` disables it.
-Both beta effects estimate vocal timing rather than measure speech.
+[📚 Consultar todos os comandos](COMMANDS.pt-BR.md) · [🩺 Resolver problemas comuns](QUICKSTART.pt-BR.md#-problemas-comuns)
 
-`theme dynamic` follows the terminal's indexed palette, including wallpaper-derived
-palettes delivered by Noctalia. It does not read wallpaper images. Static presets:
-`warm`, `purple`, `ocean`, `mono`. Transparency and blur belong to the terminal/desktop.
+## 📦 Histórico e colaboração
 
-`font 18` opens a new Kitty window at 18 points and saves the size (6–48).
-`font` reuses the saved size. It changes that window, not global kitty.conf or an
-already-open terminal. Other terminals use their own zoom.
+A versão **0.7.2** trouxe clique nas palavras, controle explícito dos intervalos beta e restauração dos padrões pela tecla `0`.
 
-## Audio and lyric sources
+Veja o [histórico de alterações em português](CHANGELOG.md) ou baixe uma [versão publicada](https://github.com/math-eusz/spotify-live-lyrics/releases).
 
-`visualizer auto` uses CAVA when available, otherwise a decorative animation.
-`spectrum` requires live CAVA samples, `activity` is decorative, `off` hides it.
-The optional label identifies the mode. The visualizer does not identify instruments.
-Smoothing is time-based (0–500 ms); pause zeroes the display. CAVA captures system audio.
+Encontrou um problema? [Abra uma issue](https://github.com/math-eusz/spotify-live-lyrics/issues) informando a versão, seu terminal, a música e o que aconteceu. Se puder, inclua a saída de `sylrics doctor` e uma captura de tela.
 
-`source native` requires no bridge. `source auto` prefers matching timed bridge data,
-otherwise uses native lyrics. `source spicy` uses bridge metadata/clock but falls back
-to native lyric search if bridge lyrics lack timings; it still needs a connected bridge.
-`--source native` is a one-run override. Bridge setup is explicit: `bridge install`
-modifies Spicetify and may restart Spotify. Open Spicy Lyrics in Spotify after installing.
-The bridge listens on loopback with origin and installation-key checks.
-
-## Settings, cache and controls
-
-`config list`, `config get KEY`, `config set KEY VALUE`, `config edit`, `config path`
-and `config restore` manage the live INI file. Defaults live in `ui.ini`.
-The standard location is `~/.config/spotify-live-lyrics/ui.ini` (or XDG_CONFIG_HOME).
-Changes through the CLI create up to 20 configuration backups. Presets are saved
-changes; they are not automatically applied during an upgrade. Restoration uses
-the latest backup and saves the configuration being replaced.
-
-The LRC directory is `~/.local/share/spotify-live-lyrics/lrc/`. Startup imports loose
-synchronized LRC files from the home directory, preserving modification dates.
-Startup and writes keep only the ten newest regular LRC files. Reading does not
-refresh dates; other files and symlinks are not removed. External lyric CLI writes
-are contained in temporary directories. `cache info` and `cache clear` use this store.
-Earlier JSON caches are left untouched and are no longer used.
-
-In the player: `q` exits, space pauses, `n`/`p` change tracks, `v` changes visualizer,
-`a` changes alignment, `s` toggles source information, `r` changes reading mode,
-`h` toggles beta emphasis, `+`/`-` adjust offset by 50 ms, and `?` toggles help.
-Keyboard preferences are temporary; CLI settings persist. Playback control uses playerctl.
-
-## Verification and limits
+Para verificar o código em uma cópia do repositório:
 
 ```sh
 python -m unittest discover -s tests -v
-sylrics doctor
-sylrics demo
 ```
 
-Tests cover lyric timing, resizing, profiles, rollback, storage, installer and
-fixture playback/audio processes. Local preview rendering is not a test against
-Spotify on the user's desktop. Incorrect lyric timestamps can still be wrong.
-The 180 FPS setting is a rendering target, not a performance guarantee.
+A v0.7.2 passou por **67 testes automatizados**, incluindo instalação e interação em terminal com player simulado. Os tempos fornecidos pelas letras e o comportamento do Spotify precisam ser avaliados na reprodução real. Os 180 FPS são uma meta de atualização, não uma garantia de desempenho.
 
-Historical versions remain in releases. Current source is released under MIT.
+## 📜 Licença e créditos
 
+Distribuído sob a [licença MIT](LICENSE).
 
-# v0.7.2 — Clique nas palavras, intervalos beta e restauração de padrões
-
-Os intervalos animados agora são uma opção beta explícita. `sylrics gaps dots-beta` ativa e `sylrics gaps off` desativa, inclusive na introdução. Instalações novas deixam o recurso desligado; atualizações preservam a escolha existente. Pausas curtas entre versos não apagam mais a letra. O limite é `pages.pause_seconds` (padrão: 2 segundos). Sem marcações vocais, a detecção continua estimada.
-
-Clique com o botão esquerdo em uma palavra visível para buscar aquele trecho. `sylrics click-seek on` ativa e `sylrics click-seek off` desativa. O clique é beta e vem ativado por padrão. Com tempos por sílaba, usa o início da sílaba que contém o começo da palavra; com tempos apenas por linha, estima o início pelo ritmo da digitação. Não garante alinhamento exato com a voz. Requer playerctl e suporte a mouse do terminal. Não muda o estado reproduzindo/pausado. O controle recusa cliques após mudança de faixa ou redimensionamento ainda não desenhado. Ajuda, espaços e letras ainda invisíveis não são alvos.
-
-Pressione **0** dentro do programa para restaurar as configurações padrão e limpar os ajustes da sessão. O comando equivalente é `sylrics config reset`. Ambos salvam backup antes da alteração. Use `sylrics config restore` para recuperar a configuração anterior. A restauração inclui tema, fonte de letras, visualizador e recursos beta; não remove o cache nem a ponte. O tamanho e a família da fonte do terminal são aplicados ao reabrir com `sylrics font`.
-
-Revisão: processamento de eventos de mouse recebidos em partes, mapeamento de palavras conforme quebra de linha e alinhamento, suporte a caracteres largos, buscas fora do loop visual, aplicação imediata de pequenos saltos no relógio e restauração do modo de mouse ao sair. Comandos e completamentos Fish/Bash atualizados.
-
-Testes automatizados incluem o fluxo completo em pseudoterminal com playerctl simulado. A reprodução dentro do Spotify do usuário ainda precisa de validação.
+O projeto utiliza playerctl para controlar a reprodução, LRCLIB e opcionalmente syncedlyrics para obter letras, CAVA para visualizar áudio e uma ponte opcional com Spicy Lyrics. O sylrics é um projeto independente, sem vínculo oficial com o Spotify.
