@@ -1,4 +1,4 @@
-# sylrics · 0.7.1
+# sylrics · 0.7.2
 
 Synchronized lyrics in your Linux terminal, with smooth typing, an optional audio
 visualizer, adaptive reading modes and live customization. Spicy Lyrics is optional.
@@ -9,9 +9,9 @@ Requires Python 3.10+ and `playerctl`. CAVA enables real audio visualization;
 `syncedlyrics` is an optional lyric provider. The native fallback also uses LRCLIB.
 
 ```sh
-curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.7.1/sylrics-0.7.1.tar.gz
-tar -xzf sylrics-0.7.1.tar.gz
-cd sylrics-0.7.1
+curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.7.2/sylrics-0.7.2.tar.gz
+tar -xzf sylrics-0.7.2.tar.gz
+cd sylrics-0.7.2
 sh install.sh
 ```
 
@@ -21,7 +21,7 @@ It does not require sudo or modify Spicetify. No AUR package is provided.
 
 [Portuguese installation guide](QUICKSTART.pt-BR.md) · [Command reference](COMMANDS.pt-BR.md)
 
-## New in 0.7.1
+## New in 0.7.2
 
 - Separate bar spacing and width, with proportional layout and gradual resampling.
 - Rolling reading mode: retain recent phrases instead of clearing the entire block.
@@ -114,20 +114,15 @@ The 180 FPS setting is a rendering target, not a performance guarantee.
 
 Historical versions remain in releases. Current source is released under MIT.
 
-# v0.7.1 — Visualizador corrigido e intervalos animados
 
-Corrige o redimensionamento do espectro: colunas inteiras são preservadas, evitando barras deformadas pela interpolação independente das linhas. Espaçamento, espessura e suavização continuam disponíveis.
+# v0.7.2 — Clique nas palavras, intervalos beta e restauração de padrões
 
-Durante a introdução e os intervalos vocais, as frases são substituídas por pontos animados. A animação acompanha a posição de reprodução e congela ao pausar. Marcas explícitas de silêncio são respeitadas imediatamente; finais estimados recebem tolerância de 500 ms. Intervalos curtos não apagam as frases. Sem tempos detalhados, isso é uma estimativa, não detecção de voz.
+Os intervalos animados agora são uma opção beta explícita. `sylrics gaps dots-beta` ativa e `sylrics gaps off` desativa, inclusive na introdução. Instalações novas deixam o recurso desligado; atualizações preservam a escolha existente. Pausas curtas entre versos não apagam mais a letra. O limite é `pages.pause_seconds` (padrão: 2 segundos). Sem marcações vocais, a detecção continua estimada.
 
-A frase atual recebe cor de destaque e negrito, enquanto a palavra no modo beta recebe também sublinhado. O destaque não aparece em mensagens de intervalo ou na ajuda.
+Clique com o botão esquerdo em uma palavra visível para buscar aquele trecho. `sylrics click-seek on` ativa e `sylrics click-seek off` desativa. O clique é beta e vem ativado por padrão. Com tempos por sílaba, usa o início da sílaba que contém o começo da palavra; com tempos apenas por linha, estima o início pelo ritmo da digitação. Não garante alinhamento exato com a voz. Requer playerctl e suporte a mouse do terminal. Não muda o estado reproduzindo/pausado. O controle recusa cliques após mudança de faixa ou redimensionamento ainda não desenhado. Ajuda, espaços e letras ainda invisíveis não são alvos.
 
-O comando de fonte aceita uma família monoespaçada instalada, sem alterar a configuração global do Kitty:
+Pressione **0** dentro do programa para restaurar as configurações padrão e limpar os ajustes da sessão. O comando equivalente é `sylrics config reset`. Ambos salvam backup antes da alteração. Use `sylrics config restore` para recuperar a configuração anterior. A restauração inclui tema, fonte de letras, visualizador e recursos beta; não remove o cache nem a ponte. O tamanho e a família da fonte do terminal são aplicados ao reabrir com `sylrics font`.
 
-```sh
-sylrics font 16 --family "monospace"
-sylrics config set layout.active_bold false
-sylrics config set pages.gap_animation false
-```
+Revisão: processamento de eventos de mouse recebidos em partes, mapeamento de palavras conforme quebra de linha e alinhamento, suporte a caracteres largos, buscas fora do loop visual, aplicação imediata de pequenos saltos no relógio e restauração do modo de mouse ao sair. Comandos e completamentos Fish/Bash atualizados.
 
-O tamanho e a família se aplicam à janela aberta por `sylrics font`. A instalação mantém as preferências e cria backup da versão anterior. Spicy Lyrics continua opcional.
+Testes automatizados incluem o fluxo completo em pseudoterminal com playerctl simulado. A reprodução dentro do Spotify do usuário ainda precisa de validação.

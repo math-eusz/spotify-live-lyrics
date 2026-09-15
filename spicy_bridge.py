@@ -52,7 +52,7 @@ def timeline(payload):
         vocal = item.get("Lead", {}) if kind == "Syllable" else item
         if not isinstance(vocal, dict):
             raise ValueError("Invalid lead")
-        chars, reveals = [], []
+        chars, reveals, char_starts = [], [], []
         if kind == "Syllable":
             parts = vocal.get("Syllables", [])
             if not isinstance(parts, list) or len(parts) > 10000:
@@ -68,10 +68,11 @@ def timeline(payload):
                 ranges.append((start, end))
                 for k, char in enumerate(text):
                     chars.append(char)
+                    char_starts.append(start)
                     reveals.append(start + (end - start) * (k + 1) / max(1, len(text)))
                 if index + 1 < len(parts) and not part.get("IsPartOfWord", False):
                     if chars and not chars[-1].isspace():
-                        chars.append(" "); reveals.append(end)
+                        chars.append(" "); reveals.append(end); char_starts.append(end)
             if not ranges:
                 continue
             start, end = min(a for a, _ in ranges), max(b for _, b in ranges)
@@ -92,7 +93,7 @@ def timeline(payload):
             total += 0.25 if char.isspace() else 0.45 if char in ",.;:!?—-" else 1.0
             weights.append(total)
         result.append({"start": start, "end": end, "text": "".join(chars),
-                       "reveals": reveals, "weights": weights, "blank": end,
+                       "reveals": reveals, "char_starts": char_starts, "weights": weights, "blank": end,
                        "duration": max(0.1, (end - start) * legacy.TYPE_RATIO)})
     result.sort(key=lambda line: line["start"])
     return result, "syllable" if kind == "Syllable" else "line"
@@ -295,3 +296,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -9,9 +9,9 @@ import shutil
 import subprocess
 import sys
 from terminal_ui import CONFIG_PATH, Settings
-from preferences import ensure, parser_for, set_value, set_theme, THEMES, set_preset, PRESETS, restore
+from preferences import ensure, parser_for, set_value, set_theme, THEMES, set_preset, PRESETS, restore, reset
 
-VERSION='0.7.1'
+VERSION='0.7.2'
 
 
 def main(argv=None):
@@ -34,12 +34,16 @@ def main(argv=None):
     font=sub.add_parser('font',help='abrir uma janela Kitty com tamanho de fonte próprio')
     font.add_argument('--family', help='família monoespaçada instalada no sistema')
     font.add_argument('size',type=int,nargs='?',help='tamanho de 6 a 48 pontos; reutiliza o tamanho salvo')
+    gaps=sub.add_parser('gaps',help='animação de intervalos vocais (beta opcional)')
+    gaps.add_argument('mode',choices=('off','dots-beta'))
+    seek=sub.add_parser('click-seek',help='buscar trecho clicando em uma palavra (beta)')
+    seek.add_argument('mode',choices=('on','off'))
     control=sub.add_parser('control',help='controlar reprodução pelo terminal')
     control.add_argument('action',choices=('play-pause','next','previous'))
     sub.add_parser('doctor',help='verificar dependências e configuração')
     config=sub.add_parser('config',help='editar configurações persistentes')
     c=config.add_subparsers(dest='config_command')
-    for name in ('path','list','edit','restore'):
+    for name in ('path','list','edit','restore','reset'):
         c.add_parser(name)
     get=c.add_parser('get');get.add_argument('key')
     put=c.add_parser('set');put.add_argument('key');put.add_argument('value')
@@ -75,6 +79,10 @@ def main(argv=None):
         if args.command=='config' and args.config_command=='restore':
             restore(args.config)
             print('Configuração anterior restaurada; estado atual salvo em backup.')
+            return 0
+        if args.command=='config' and args.config_command=='reset':
+            reset(args.config)
+            print('Configurações padrão restauradas; configuração anterior salva em backup.')
             return 0
         ensure(args.config)
         if args.command=='config':
@@ -122,6 +130,11 @@ def main(argv=None):
             set_value(args.config,'layout.font_family',family)
             set_value(args.config,'layout.font_size',str(size))
             return subprocess.call(command)
+        if args.command in ('gaps','click-seek'):
+            key='pages.gap_animation' if args.command=='gaps' else 'layout.click_seek'
+            set_value(args.config,key,'false' if args.mode=='off' else 'true')
+            print(('Intervalos (beta): ' if args.command=='gaps' else 'Clique nas palavras (beta): ')+args.mode+' · salvo')
+            return 0
         if args.command=='highlight':
             set_value(args.config,'layout.word_highlight',args.mode)
             print('Destaque da palavra: '+args.mode+' · salvo')

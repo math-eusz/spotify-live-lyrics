@@ -14,7 +14,7 @@ class Version071(unittest.TestCase):
 
     def test_marked_silence_hides_history_until_next_timestamp(self):
         lines=parse_lyrics('[00:02]First phrase\n[00:05]\n[00:10]Next phrase')
-        pages=Pages();cfg=DEFAULTS['pages']
+        pages=Pages();cfg=dict(DEFAULTS['pages'],gap_animation='true')
         self.assertIn('First',pages.render(lines,4.9,cfg)[0])
         for pos in (5,6,9.99):
             body,anchor,gap=pages.render(lines,pos,cfg)
@@ -24,7 +24,7 @@ class Version071(unittest.TestCase):
         self.assertIn('First',pages.render(lines,4.9,cfg)[0])
 
     def test_dots_animate_with_playback_and_estimated_short_gaps_stay_visible(self):
-        pages=Pages();cfg=DEFAULTS['pages']
+        pages=Pages();cfg=dict(DEFAULTS['pages'],gap_animation='true')
         lines=parse_lyrics('[00:02]First phrase\n[00:04]Next phrase')
         self.assertNotEqual(pages.render(lines,0,cfg)[0],pages.render(lines,.5,cfg)[0])
         self.assertFalse(pages.render(lines,3.99,cfg)[2])

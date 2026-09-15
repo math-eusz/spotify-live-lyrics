@@ -1,4 +1,4 @@
-"""Unified native/automatic/Spicy player for sylrics 0.7.1."""
+"""Unified native/automatic/Spicy player for sylrics 0.7.2."""
 import os
 import select
 import shutil
@@ -11,6 +11,7 @@ from paging import Pages
 from sources import Player, Lyrics, Clock
 from terminal_ui import TerminalUI, Settings
 from visualizer import Visualizer
+from interaction import InputParser, word_target
 
 
 def same_track(a,b):
@@ -34,6 +35,8 @@ def choose_source(mode,native,spicy,spicy_lines):
 class Keyboard:
     def __enter__(self):
         self.saved=None
+        self.parser=InputParser()
+        self.mouse=False
         if sys.stdin.isatty():
             self.saved=termios.tcgetattr(sys.stdin.fileno())
             tty.setcbreak(sys.stdin.fileno())
@@ -41,10 +44,17 @@ class Keyboard:
 
     def read(self):
         if self.saved and select.select([sys.stdin],[],[],0)[0]:
-            return os.read(sys.stdin.fileno(),32).decode(errors='ignore')
-        return ''
+            return self.parser.feed(os.read(sys.stdin.fileno(),4096).decode(errors='ignore'))
+        return []
+
+    def capture_mouse(self, enabled):
+        enabled = bool(enabled and self.saved)
+        if enabled != self.mouse:
+            print('\033[?1000h\033[?1006h' if enabled else '\033[?1000l\033[?1006l',end='',flush=True)
+            self.mouse = enabled
 
     def __exit__(self,*args):
+        self.capture_mouse(False)
         if self.saved:
             termios.tcsetattr(sys.stdin.fileno(),termios.TCSADRAIN,self.saved)
 
@@ -77,6 +87,9 @@ def run(path,source=None,demo=False):
     session={}
     signature=settings.signature
     help_open=False
+    displayed=None
+    displayed_rows=[]
+    displayed_size=None
     started=time.monotonic()
     demo_lines=[]
     if demo:
@@ -108,9 +121,48 @@ def run(path,source=None,demo=False):
                         bridge.close()
                         bridge=None
                 visual.configure(settings.values['visualizer'])
-                keys=keyboard.read()
+                keyboard.capture_mouse(settings.flag('click_seek') and not demo)
+                events=keyboard.read()
+                keys=''.join(value for kind,value in events if kind=='key')
+                for kind,value in events:
+                    if '0' in keys or kind != 'click' or help_open or not settings.flag('click_seek'):
+                        continue
+                    if displayed_size != shutil.get_terminal_size((100,28)):
+                        continue
+                    hit=ui.hits.get(value)
+                    if not hit or not displayed or not native:
+                        continue
+                    live=native.snapshot()
+                    if not live or not same_track(live,displayed) or live['uri'] != displayed['uri']:
+                        continue
+                    row,offset=hit
+                    line=displayed_rows[row] if row<len(displayed_rows) else None
+                    target=word_target(line,offset) if line else None
+                    if target:
+                        stamp,estimated=target
+                        stamp=max(0,stamp)
+                        if live.get('duration'):
+                            stamp=min(stamp,live['duration'])
+                        if native.seek(stamp,live['uri']):
+                            notice='Busca por palavra · '+('tempo estimado' if estimated else 'tempo da sílaba')
+                            notice_until=tick+3
                 if 'q' in keys:
                     break
+                if '0' in keys:
+                    from preferences import reset
+                    try:
+                        reset(path)
+                        session.clear()
+                        settings.next_check=0
+                        settings.reload()
+                        signature=settings.signature
+                        source=None
+                        help_open=False
+                        notice='Configurações padrão restauradas · backup salvo'
+                    except (OSError,ValueError) as error:
+                        notice='Não foi possível restaurar: '+str(error)
+                    notice_until=tick+4
+                    continue
                 for key in keys:
                     if key in ' np' and native:
                         native.control({' ':'play-pause','n':'next','p':'previous'}[key])
@@ -143,7 +195,7 @@ def run(path,source=None,demo=False):
                     for (section,option),value in session.items():
                         settings.values[section][option]=value
                 if demo:
-                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.7.1',duration=30,
+                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.7.2',duration=30,
                               position=(tick-started)%30,measured_at=tick,playing=True)
                     lines,label=demo_lines,'Demonstração'
                 else:
@@ -159,14 +211,20 @@ def run(path,source=None,demo=False):
                     else:
                         body=anchor=label.split(' · ',1)[-1]
                         gap=True
+                    native_display = native.snapshot() if native else None
+                    displayed = native_display if same_track(native_display,data) else None
+                    displayed_rows = list(pages.row_lines) if lines else []
                     bars=visual.frame(settings.values['visualizer'],data['playing'],gap,tick)
                     ui.draw(data['artist'],data['title'],body,position,data.get('duration',0),data['playing'],
                             label,anchor,visual=bars,gap=gap,help_open=help_open,notice=notice if tick<notice_until else '')
                 else:
+                    displayed=None
+                    displayed_rows=[]
                     message='Abra um player compatível e toque uma música.' if mode!='spicy' else (
                         bridge.error or 'Abra a letra no Spicy Lyrics para conectar.')
-                    ui.draw('','sylrics · 0.7.1',message,playing=False,
+                    ui.draw('','sylrics · 0.7.2',message,playing=False,
                             notice='sylrics doctor · Diagnóstico',source=mode,help_open=help_open)
+                displayed_size=ui.last_size
                 time.sleep(max(0,1/int(playback['fps'])-(time.monotonic()-tick)))
     except KeyboardInterrupt:
         pass

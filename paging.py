@@ -37,8 +37,10 @@ class Pages:
             self.starts = page_starts(lines, settings)
             self.times = [line['start'] for line in lines]
             self.key = key
+        self.row_lines = []
         current = bisect.bisect_right(self.times, position) - 1
         if current < 0:
+            self.row_lines = []
             return self.rest(position, settings)
         page = bisect.bisect_right(self.starts, current) - 1
         first = self.starts[page]
@@ -53,6 +55,13 @@ class Pages:
                 if lines[i]['start'] - vocal_end >= float(settings['pause_seconds']):
                     first = i
             end = current + 1
+        for index in range(first, current+1):
+            if index > first:
+                prev = lines[index-1]
+                stop = prev['blank'] if prev.get('blank') is not None else prev['end']
+                if lines[index]['start'] - stop >= float(settings['pause_seconds']):
+                    self.row_lines.append(None)
+            self.row_lines.append(lines[index])
         block = lines[first:end]
         kwargs = dict(ahead=ahead, typing_mode=typing_mode, block_size=max(1, len(block)),
                       pause_seconds=float(settings['pause_seconds']))
@@ -64,16 +73,19 @@ class Pages:
         next_start = lines[current+1]['start'] if current+1 < len(lines) else float('inf')
         marked = lines[current].get('blank') is not None
         pause = float(settings['pause_seconds'])
-        gap = position >= vocal_end and (marked or next_start - vocal_end >= pause)
+        gap = position >= vocal_end and next_start - vocal_end >= pause
         # Estimated ends need a short grace period; explicit silence is immediate.
         if gap and not marked:
             gap = position >= vocal_end + min(.5, pause)
-        if gap and settings.get('gap_animation', 'true').lower() in ('true','1','yes','on'):
+        if gap and settings.get('gap_animation', 'false').lower() in ('true','1','yes','on'):
+            self.row_lines = []
             return self.rest(position, settings)
         return body, anchor, gap
 
     @staticmethod
     def rest(position, settings):
+        if settings.get('gap_animation', 'false').lower() not in ('true','1','yes','on'):
+            return 'Introdução', 'Introdução', True
         dots = '.' * (1 + int(max(0, position) / .45) % 3)
         return dots, '...', True
 

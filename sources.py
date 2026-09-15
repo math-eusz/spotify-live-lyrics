@@ -22,6 +22,7 @@ class Player:
         self.lock = threading.Lock()
         self.data = None
         self.actions = queue.Queue(maxsize=8)
+        self.seek_serial = 0
         self.thread = threading.Thread(target=self.work, daemon=True)
         self.thread.start()
 
@@ -33,7 +34,14 @@ class Player:
             except queue.Empty:
                 pass
             else:
-                command(['playerctl', '-p', self.name, action])
+                if isinstance(action, tuple):
+                    stamp, expected = action
+                    live = command(['playerctl','-p',self.name,'metadata','--format','{{mpris:trackid}}'])
+                    if live == expected:
+                        command(['playerctl','-p',self.name,'position',f'{stamp:.6f}'])
+                        self.seek_serial += 1
+                else:
+                    command(['playerctl', '-p', self.name, action])
             raw = command(['playerctl', '-p', self.name, 'metadata', '--format',
                            '{{artist}}\t{{title}}\t{{mpris:length}}\t{{mpris:trackid}}'])
             fields = raw.split('\t')
@@ -49,7 +57,7 @@ class Player:
                     raise ValueError
                 data = dict(artist=fields[0], title=fields[1], duration=max(0, duration),
                             uri=fields[3] if len(fields)>3 else raw, position=max(0, position),
-                            playing=status == 'Playing', measured_at=(before+after)/2)
+                            seek_serial=self.seek_serial, playing=status == 'Playing', measured_at=(before+after)/2)
             except (ValueError, IndexError):
                 pass
             with self.lock:
@@ -68,6 +76,15 @@ class Player:
         except queue.Full:
             pass
 
+    def seek(self, position, uri):
+        if not math.isfinite(position) or position < 0 or not uri:
+            return False
+        try:
+            self.actions.put_nowait((position, uri))
+            return True
+        except queue.Full:
+            return False
+
     def close(self):
         self.stop.set()
 
@@ -84,7 +101,7 @@ class Clock:
 
     def position(self, data, now=None):
         now = time.monotonic() if now is None else now
-        key = (data['uri'], data['artist'], data['title'])
+        key = (data['uri'], data['artist'], data['title'], data.get('seek_serial', 0))
         measured = data['measured_at']
         projected = data['position'] + (min(.5, max(0, now-measured)) if data['playing'] else 0)
         current = self.anchor + (max(0, now-self.at) if self.playing else 0)
@@ -110,7 +127,7 @@ def fetch_lrc(data):
     if data.get('duration', 0) > 0:
         params['duration'] = round(data['duration'])
     request = urllib.request.Request('https://lrclib.net/api/get?' + urllib.parse.urlencode(params),
-                    headers={'User-Agent': 'sylrics/0.7.0 (https://github.com/math-eusz/spotify-live-lyrics)'})
+                    headers={'User-Agent': 'sylrics/0.7.2 (https://github.com/math-eusz/spotify-live-lyrics)'})
     with urllib.request.urlopen(request, timeout=8) as response:
         payload = json.loads(response.read(1_000_001))
     if not isinstance(payload, dict):

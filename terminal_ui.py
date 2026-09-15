@@ -13,11 +13,11 @@ DEFAULTS = {
     'layout': {'alignment': 'center', 'vertical': 'center', 'padding': '3',
                'line_spacing': '1', 'lyrics_width': '86', 'border': 'true',
                'show_progress': 'true', 'show_source': 'false',
-               'history_dim': 'true', 'active_bold': 'true', 'font_family': 'monospace', 'word_highlight': 'off', 'font_size': '14', 'show_hints': 'false', 'show_footer': 'true', 'cursor': '▎', 'icons': 'true'},
+               'history_dim': 'true', 'active_bold': 'true', 'click_seek': 'true', 'font_family': 'monospace', 'word_highlight': 'off', 'font_size': '14', 'show_hints': 'false', 'show_footer': 'true', 'cursor': '▎', 'icons': 'true'},
     'playback': {'source': 'native', 'player': 'spotify', 'fps': '180',
                  'sync_offset': '0', 'type_ahead': '0.10', 'typing_mode': 'smooth'},
     'pages': {'mode': 'dynamic', 'min_lines': '2', 'max_lines': '6',
-              'target_seconds': '12', 'pause_seconds': '2', 'gap_animation': 'true'},
+              'target_seconds': '12', 'pause_seconds': '2', 'gap_animation': 'false'},
     'visualizer': {'mode': 'auto', 'style': 'bars', 'width': '32', 'width_percent': '85', 'bottom_margin': '1', 'height': '3',
                    'bar_spacing': '1', 'bar_width': '1', 'smoothing_ms': '120', 'show_label': 'false', 'only_gaps': 'false', 'input': 'auto', 'sensitivity': '100'},
     'theme': {'mode': 'static'},
@@ -102,7 +102,7 @@ class Settings:
                                     ('lyrics_width', 10, 240)]:
                 if not low <= parser.getint('layout', name) <= high:
                     raise ValueError(name)
-            for name in ('border', 'show_progress', 'show_source', 'show_footer', 'show_hints', 'icons', 'history_dim', 'active_bold'):
+            for name in ('border', 'show_progress', 'show_source', 'show_footer', 'show_hints', 'icons', 'history_dim', 'active_bold', 'click_seek'):
                 parser.getboolean('layout', name)
             choices = {('layout', 'word_highlight'): ('off', 'bold-beta'),('theme', 'mode'): ('static', 'dynamic'),
                        ('playback', 'typing_mode'): ('smooth', 'words-beta'),('playback', 'source'): ('native', 'auto', 'spicy'),
@@ -162,6 +162,7 @@ class TerminalUI:
         self.last_size = None
         self.frame_key = None
         self.frame_rows = None
+        self.hits = {}
 
     def color(self, name):
         if name == 'word':
@@ -192,6 +193,7 @@ class TerminalUI:
                      repr(self.settings.values), self.settings.error)
         if frame_key == self.frame_key:
             return self.frame_rows
+        self.hits = {}
         layout = dict(self.settings.values['layout'])
         if help_open:
             layout.update(line_spacing='0', vertical='center', alignment='left')
@@ -264,18 +266,20 @@ class TerminalUI:
                 'V  ·  Alternar visualizador\n'
                 'R  ·  Alternar modo de leitura\n'
                 'H  ·  Destaque da palavra (beta)\n'
+                'Clique  ·  Buscar palavra (beta)\n'
                 'A  ·  Alterar alinhamento\n'
                 'S  ·  Exibir ou ocultar a fonte\n'
                 '+ / −  ·  Ajustar sincronização\n'
+                '0  ·  Restaurar padrões (salva backup)\n'
                 'Q  ·  Encerrar\n'
                 '?  ·  Fechar ajuda')
-        if help_open and room < 13:
+        if help_open and room < 15:
             body = anchor = ('Ajuda · ? fechar\n'
                 'Espaço: pausa   q: sair\n'
                 'n/p: faixa   v: visualizador\n'
                 'r: leitura   h: destaque\n'
                 'a: alinhar   s: fonte\n'
-                '+/-: sincronização')
+                '+/-: sincronização   0: padrões')
         visible_rows = body.split('\n')
         full_rows = (anchor if anchor is not None else body).split('\n')
         prepared = []
@@ -303,21 +307,28 @@ class TerminalUI:
                     lo, hi = max(0, word_span[0]-segment_start), min(count, word_span[1]-segment_start)
                     if hi > lo:
                         highlight = (lo, hi)
-                prepared.append((fragment, min(wrap_width, cells(segment) + cells(layout['cursor'])), i == len(visible_rows)-1 and not gap and not help_open, highlight))
+                prepared.append((fragment, min(wrap_width, cells(segment) + cells(layout['cursor'])), i == len(visible_rows)-1 and not gap and not help_open, highlight, i, segment_start, count))
                 segment_start += len(segment)
                 remaining -= len(segment)
             if i + 1 < len(visible_rows):
-                prepared.extend([('', 0, False, None)] * int(layout['line_spacing']))
+                prepared.extend([('', 0, False, None, None, 0, 0)] * int(layout['line_spacing']))
         if len(prepared) > room:
             visible_end = max((i + 1 for i, row in enumerate(prepared) if row[0]), default=1)
             window_start = max(0, visible_end - room)
             prepared = prepared[window_start:window_start + room]
         offset = max(0, room - len(prepared))
         start_y = content_top + (offset // 2 if layout['vertical'] == 'center' else offset if layout['vertical'] == 'bottom' else 0)
-        for y, (text, full_width, active, highlight) in enumerate(prepared, start_y):
+        for y, (text, full_width, active, highlight, source_row, source_offset, shown) in enumerate(prepared, start_y):
             free = max(0, usable - full_width)
             x = left + (free // 2 if layout['alignment'] == 'center' else free if layout['alignment'] == 'right' else 0)
             put(y, x, crop(text, usable - (x-left)), 'active' if active else 'muted' if self.settings.flag('history_dim') and not help_open else 'text')
+            if source_row is not None and not help_open and self.settings.flag('click_seek'):
+                cell = x
+                for offset, char in enumerate(text[:shown]):
+                    for col in range(cells(char)):
+                        if cell+col < left+usable and not char.isspace():
+                            self.hits[cell+col, y] = (source_row, source_offset+offset)
+                    cell += cells(char)
             if highlight:
                 lo, hi = highlight
                 put(y, x + cells(text[:lo]), text[lo:hi], 'word')

@@ -29,7 +29,7 @@ def write(parser,path,backup=True):
     path=Path(path)
     path.parent.mkdir(parents=True,exist_ok=True)
     out=io.StringIO()
-    out.write('; sylrics 0.7.0 — salve para aplicar ao vivo. Ajuda: sylrics config list\n')
+    out.write('; sylrics 0.7.2 — salve para aplicar ao vivo. Ajuda: sylrics config list\n')
     parser.write(out)
     fd,name=tempfile.mkstemp(prefix='.ui-',suffix='.ini',dir=path.parent)
     temp=Path(name)
@@ -116,3 +116,10 @@ def restore(path):
         raise ValueError('Nenhum backup de configuração disponível.')
     previous = parser_for(backups[-1])
     write(previous, path)
+
+
+def reset(path):
+    """Restore shipped defaults atomically, preserving the prior INI in backup."""
+    parser = configparser.ConfigParser(interpolation=None)
+    parser.read_dict(DEFAULTS)
+    write(parser, path)

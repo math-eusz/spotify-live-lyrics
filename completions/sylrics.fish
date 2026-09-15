@@ -1,9 +1,9 @@
 complete -c sylrics -f
-complete -c sylrics -n '__fish_use_subcommand' -a 'play demo config theme preset reading typing highlight font source visualizer control doctor cache bridge' -d 'sylrics command'
+complete -c sylrics -n '__fish_use_subcommand' -a 'play demo gaps click-seek config theme preset reading typing highlight font source visualizer control doctor cache bridge' -d 'sylrics command'
 complete -c sylrics -l source -xa 'native auto spicy' -d 'Lyric source'
 complete -c sylrics -l config -r -d 'Alternative INI file'
 complete -c sylrics -l version -d 'Version'
-complete -c sylrics -n '__fish_seen_subcommand_from config' -a 'path list get set edit restore'
+complete -c sylrics -n '__fish_seen_subcommand_from config' -a 'path list get set edit restore reset'
 complete -c sylrics -n '__fish_seen_subcommand_from theme' -a 'warm purple mono ocean dynamic'
 complete -c sylrics -n '__fish_seen_subcommand_from cache' -a 'info clear'
 complete -c sylrics -n '__fish_seen_subcommand_from bridge' -a 'install status'
@@ -17,3 +17,8 @@ complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'visualizer.smoo
 complete -c sylrics -n '__fish_seen_subcommand_from preset' -a 'list minimal studio cinema'
 complete -c sylrics -n '__fish_seen_subcommand_from reading' -a 'dynamic fixed rolling'
 complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'visualizer.bar_spacing visualizer.bar_width layout.history_dim'
+
+complete -c sylrics -n '__fish_seen_subcommand_from gaps' -a 'off dots-beta'
+complete -c sylrics -n '__fish_seen_subcommand_from click-seek' -a 'on off'
+complete -c sylrics -n '__fish_seen_subcommand_from font' -l family -r
+complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'pages.gap_animation layout.click_seek layout.active_bold layout.font_family'
