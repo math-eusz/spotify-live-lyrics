@@ -1,4 +1,4 @@
-"""Unified native/automatic/Spicy player for sylrics 0.7.2."""
+"""Unified native/automatic/Spicy player for sylrics 0.8.0."""
 import os
 import select
 import shutil
@@ -11,6 +11,7 @@ from paging import Pages
 from sources import Player, Lyrics, Clock
 from terminal_ui import TerminalUI, Settings
 from visualizer import Visualizer
+from covers import Covers, supported
 from interaction import InputParser, word_target
 
 
@@ -82,6 +83,7 @@ def run(path,source=None,demo=False):
     pages=Pages()
     clock=Clock()
     visual=Visualizer()
+    covers=Covers()
     notice=''
     notice_until=0
     session={}
@@ -120,7 +122,10 @@ def run(path,source=None,demo=False):
                     elif mode=='native' and bridge:
                         bridge.close()
                         bridge=None
-                visual.configure(settings.values['visualizer'])
+                visual_config=dict(settings.values['visualizer'])
+                if settings.values['layout']['view']=='lyrics':
+                    visual_config['mode']='off'
+                visual.configure(visual_config)
                 keyboard.capture_mouse(settings.flag('click_seek') and not demo)
                 events=keyboard.read()
                 keys=''.join(value for kind,value in events if kind=='key')
@@ -133,7 +138,7 @@ def run(path,source=None,demo=False):
                     if not hit or not displayed or not native:
                         continue
                     live=native.snapshot()
-                    if not live or not same_track(live,displayed) or live['uri'] != displayed['uri']:
+                    if not live or not same_track(live,displayed) or live['uri'] != displayed['uri'] or live.get('player') != displayed.get('player'):
                         continue
                     row,offset=hit
                     line=displayed_rows[row] if row<len(displayed_rows) else None
@@ -143,7 +148,7 @@ def run(path,source=None,demo=False):
                         stamp=max(0,stamp)
                         if live.get('duration'):
                             stamp=min(stamp,live['duration'])
-                        if native.seek(stamp,live['uri']):
+                        if native.seek(stamp,live['uri'],live.get('player')):
                             notice='Busca por palavra · '+('tempo estimado' if estimated else 'tempo da sílaba')
                             notice_until=tick+3
                 if 'q' in keys:
@@ -166,6 +171,8 @@ def run(path,source=None,demo=False):
                 for key in keys:
                     if key in ' np' and native:
                         native.control({' ':'play-pause','n':'next','p':'previous'}[key])
+                    if key=='l':
+                        session['layout','view']='full' if settings.values['layout']['view']=='lyrics' else 'lyrics'
                     if key=='v':
                         modes=['auto','spectrum','activity','off']
                         value=modes[(modes.index(settings.values['visualizer']['mode'])+1)%len(modes)]
@@ -195,7 +202,7 @@ def run(path,source=None,demo=False):
                     for (section,option),value in session.items():
                         settings.values[section][option]=value
                 if demo:
-                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.7.2',duration=30,
+                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.8.0',duration=30,
                               position=(tick-started)%30,measured_at=tick,playing=True)
                     lines,label=demo_lines,'Demonstração'
                 else:
@@ -214,15 +221,17 @@ def run(path,source=None,demo=False):
                     native_display = native.snapshot() if native else None
                     displayed = native_display if same_track(native_display,data) else None
                     displayed_rows = list(pages.row_lines) if lines else []
-                    bars=visual.frame(settings.values['visualizer'],data['playing'],gap,tick)
+                    bars=visual.frame(visual_config,data['playing'],gap,tick)
+                    metadata=native_display if same_track(native_display,data) else data
+                    artwork=covers.get(metadata.get('art_url','')) if supported() and settings.flag('cover') and settings.values['layout']['view']=='full' else None
                     ui.draw(data['artist'],data['title'],body,position,data.get('duration',0),data['playing'],
-                            label,anchor,visual=bars,gap=gap,help_open=help_open,notice=notice if tick<notice_until else '')
+                            label,anchor,album=metadata.get('album',''),player=metadata.get('player',''),cover_png=artwork,visual=bars,gap=gap,help_open=help_open,notice=notice if tick<notice_until else '')
                 else:
                     displayed=None
                     displayed_rows=[]
                     message='Abra um player compatível e toque uma música.' if mode!='spicy' else (
                         bridge.error or 'Abra a letra no Spicy Lyrics para conectar.')
-                    ui.draw('','sylrics · 0.7.2',message,playing=False,
+                    ui.draw('','sylrics · 0.8.0',message,playing=False,
                             notice='sylrics doctor · Diagnóstico',source=mode,help_open=help_open)
                 displayed_size=ui.last_size
                 time.sleep(max(0,1/int(playback['fps'])-(time.monotonic()-tick)))
@@ -234,6 +243,8 @@ def run(path,source=None,demo=False):
         if loader:
             loader.close()
         visual.close()
+        covers.close()
+        sys.stdout.write(ui.cover.clear())
         if bridge:
             bridge.close()
         print('\033[0m\033[?25h\033[?1049l',end='',flush=True)

@@ -1,5 +1,5 @@
 complete -c sylrics -f
-complete -c sylrics -n '__fish_use_subcommand' -a 'play demo gaps click-seek config theme preset reading typing highlight font source visualizer control doctor cache bridge' -d 'sylrics command'
+complete -c sylrics -n '__fish_use_subcommand' -a 'play demo view player cover gaps click-seek config theme preset reading typing highlight font source visualizer control doctor cache bridge' -d 'sylrics command'
 complete -c sylrics -l source -xa 'native auto spicy' -d 'Lyric source'
 complete -c sylrics -l config -r -d 'Alternative INI file'
 complete -c sylrics -l version -d 'Version'
@@ -22,3 +22,8 @@ complete -c sylrics -n '__fish_seen_subcommand_from gaps' -a 'off dots-beta'
 complete -c sylrics -n '__fish_seen_subcommand_from click-seek' -a 'on off'
 complete -c sylrics -n '__fish_seen_subcommand_from font' -l family -r
 complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'pages.gap_animation layout.click_seek layout.active_bold layout.font_family'
+
+complete -c sylrics -n '__fish_seen_subcommand_from view' -a 'full lyrics'
+complete -c sylrics -n '__fish_seen_subcommand_from player' -a 'auto spotify spotify_player'
+complete -c sylrics -n '__fish_seen_subcommand_from cover' -a 'on off'
+complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'layout.view layout.cover'

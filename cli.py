@@ -11,7 +11,7 @@ import sys
 from terminal_ui import CONFIG_PATH, Settings
 from preferences import ensure, parser_for, set_value, set_theme, THEMES, set_preset, PRESETS, restore, reset
 
-VERSION='0.7.2'
+VERSION='0.8.0'
 
 
 def main(argv=None):
@@ -40,6 +40,12 @@ def main(argv=None):
     seek.add_argument('mode',choices=('on','off'))
     control=sub.add_parser('control',help='controlar reprodução pelo terminal')
     control.add_argument('action',choices=('play-pause','next','previous'))
+    view=sub.add_parser('view',help='interface completa ou somente letras')
+    view.add_argument('mode',choices=('full','lyrics'))
+    player=sub.add_parser('player',help='player MPRIS: auto, spotify_player ou nome específico')
+    player.add_argument('name')
+    cover=sub.add_parser('cover',help='mostrar ou ocultar capa do álbum (Kitty)')
+    cover.add_argument('mode',choices=('on','off'))
     sub.add_parser('doctor',help='verificar dependências e configuração')
     config=sub.add_parser('config',help='editar configurações persistentes')
     c=config.add_subparsers(dest='config_command')
@@ -65,6 +71,12 @@ def main(argv=None):
             for executable,role in [('playerctl','controle do player nativo'),('cava','espectro de áudio opcional'),
                                     ('syncedlyrics','fonte adicional opcional'),('spicetify','ponte opcional')]:
                 print(f'{executable}: {shutil.which(executable) or "não instalado"} · {role}')
+            from sources import available_players, resolve_player
+            from importlib.util import find_spec
+            print('Players MPRIS: '+(', '.join(available_players()) or 'nenhum'))
+            print('Player selecionado: '+(resolve_player(config.values['playback']['player']) or 'nenhum'))
+            print('Capa: '+('Pillow disponível; requer Kitty' if find_spec('PIL') else 'instale python-pillow para habilitar'))
+            print('spotify_player: ative enable_media_control = true em app.toml se não for detectado.')
             print('Fonte: '+config.values['playback']['source'])
             print('Configuração: '+(config.error or 'válida'))
             return 1 if config.error else 0
@@ -148,9 +160,19 @@ def main(argv=None):
             set_value(args.config,key,args.mode)
             print(key+' = '+args.mode+' · salvo')
             return 0
+        if args.command in ('view','player','cover'):
+            key={'view':'layout.view','player':'playback.player','cover':'layout.cover'}[args.command]
+            value=args.name if args.command=='player' else ('true' if args.mode=='on' else 'false') if args.command=='cover' else args.mode
+            set_value(args.config,key,value)
+            print(key+' = '+value+' · salvo')
+            return 0
         if args.command=='control':
             settings=Settings(args.config);settings.reload()
-            return subprocess.call(['playerctl','-p',settings.values['playback']['player'],args.action])
+            from sources import resolve_player
+            selected=resolve_player(settings.values['playback']['player'])
+            if not selected:
+                raise ValueError('Nenhum player compatível encontrado. Execute sylrics doctor.')
+            return subprocess.call(['playerctl','-p',selected,args.action])
         if args.command=='theme':
             set_theme(args.config,args.name)
             print('Tema '+args.name+' aplicado.')

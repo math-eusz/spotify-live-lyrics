@@ -80,6 +80,7 @@ class Version072(unittest.TestCase):
             calls=[]
             def command(args):
                 calls.append(args)
+                if "-l" in args:return "spotify"
                 if args[-1]=='{{mpris:trackid}}':return actual
                 if 'metadata' in args:return 'Artist\tTitle\t9000000\t'+actual
                 if 'status' in args:return 'Playing'
@@ -99,7 +100,7 @@ class Version072(unittest.TestCase):
         root=Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as td:
             home=Path(td);bins=home/'bin';bins.mkdir();log=home/'seek.txt'
-            (bins/'playerctl').write_text('#!'+sys.executable+'\nimport sys\nfrom pathlib import Path\na=sys.argv\nif "metadata" in a:\n print("track:a" if a[-1]=="{{mpris:trackid}}" else "Artist\\tFixture\\t60000000\\ttrack:a")\nelif "status" in a: print("Playing")\nelif a[-1]=="position": print("4")\nelif "position" in a: Path('+repr(str(log))+').write_text(a[-1])\n')
+            (bins/'playerctl').write_text('#!'+sys.executable+'\nimport sys\nfrom pathlib import Path\na=sys.argv\nif "-l" in a: print("spotify")\nelif a[-1]=="{{artist}}\\t{{title}}": print("Artist\\tFixture")\nelif "metadata" in a:\n print("track:a" if a[-1]=="{{mpris:trackid}}" else "Artist\\tFixture\\t60000000\\ttrack:a")\nelif "status" in a: print("Playing")\nelif a[-1]=="position": print("4")\nelif "position" in a: Path('+repr(str(log))+').write_text(a[-1])\n')
             (bins/'syncedlyrics').write_text('#!'+sys.executable+'\nprint("[00:01]Working native lyrics\\n[00:05]\\n[00:10]Next phrase")\n')
             for f in bins.iterdir():f.chmod(0o755)
             env=dict(os.environ,HOME=td,XDG_CONFIG_HOME=str(home/'cfg'),XDG_CACHE_HOME=str(home/'cache'),PATH=str(bins)+os.pathsep+os.environ['PATH'])

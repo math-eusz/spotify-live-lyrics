@@ -15,39 +15,71 @@ from lyrics import command, parse_lyrics
 from lrc_store import LrcStore
 
 
+def available_players():
+    return list(dict.fromkeys(command(['playerctl', '-l']).splitlines()))
+
+
+def resolve_player(preference='auto', current=None):
+    names = available_players()
+    # Old installations saved "spotify" as their default. Keep these working
+    # with the terminal client too; an explicit spotify_player stays exclusive.
+    if preference in ('auto', 'spotify'):
+        candidates = [name for name in names if name.split('.')[0] in
+                      ('spotify', 'spotify_player', 'spotify-player')]
+    else:
+        candidates = [name for name in names if name == preference or
+                      name.startswith(preference + '.')]
+    playing = [name for name in candidates if
+               command(['playerctl', '-p', name, 'status']) == 'Playing']
+    choices = playing or candidates
+    return current if current in choices else next(iter(choices), None)
+
+
 class Player:
-    def __init__(self, name='spotify'):
+    def __init__(self, name='auto'):
         self.name = name
         self.stop = threading.Event()
         self.lock = threading.Lock()
         self.data = None
         self.actions = queue.Queue(maxsize=8)
         self.seek_serial = 0
+        self.selected = None
+        self.next_discovery = 0
         self.thread = threading.Thread(target=self.work, daemon=True)
         self.thread.start()
 
     def work(self):
         while not self.stop.is_set():
             started = time.monotonic()
+            if started >= getattr(self, 'next_discovery', 0):
+                self.selected = resolve_player(self.name, getattr(self, 'selected', None))
+                self.next_discovery = started + 1.0
+            selected = self.selected
+            if not selected:
+                with self.lock:
+                    self.data = None
+                self.stop.wait(.2)
+                continue
             try:
                 action = self.actions.get_nowait()
             except queue.Empty:
                 pass
             else:
                 if isinstance(action, tuple):
-                    stamp, expected = action
-                    live = command(['playerctl','-p',self.name,'metadata','--format','{{mpris:trackid}}'])
-                    if live == expected:
-                        command(['playerctl','-p',self.name,'position',f'{stamp:.6f}'])
+                    stamp, expected, target, identity = action
+                    live = command(['playerctl','-p',target,'metadata','--format','{{mpris:trackid}}'])
+                    live_identity = command(['playerctl','-p',target,'metadata','--format','{{artist}}\t{{title}}']) if identity else None
+                    if live == expected and target == selected and (identity is None or live_identity == identity):
+                        command(['playerctl','-p',target,'position',f'{stamp:.6f}'])
                         self.seek_serial += 1
-                else:
-                    command(['playerctl', '-p', self.name, action])
-            raw = command(['playerctl', '-p', self.name, 'metadata', '--format',
-                           '{{artist}}\t{{title}}\t{{mpris:length}}\t{{mpris:trackid}}'])
+                elif action['player'] == selected:
+                    command(['playerctl', '-p', selected, action['command']])
+            raw = command(['playerctl', '-p', selected, 'metadata', '--format',
+                           '{{artist}}\t{{title}}\t{{mpris:length}}\t{{mpris:trackid}}\t{{album}}\t{{mpris:artUrl}}'])
             fields = raw.split('\t')
-            status = command(['playerctl', '-p', self.name, 'status'])
+            status = command(['playerctl', '-p', selected, 'status'])
             before = time.monotonic()
-            position = command(['playerctl', '-p', self.name, 'position'])
+            position = command(['playerctl', '-p', selected, 'position'])
             after = time.monotonic()
             data = None
             try:
@@ -57,6 +89,8 @@ class Player:
                     raise ValueError
                 data = dict(artist=fields[0], title=fields[1], duration=max(0, duration),
                             uri=fields[3] if len(fields)>3 else raw, position=max(0, position),
+                            album=fields[4] if len(fields)>4 else '',
+                            art_url=fields[5] if len(fields)>5 else '', player=selected,
                             seek_serial=self.seek_serial, playing=status == 'Playing', measured_at=(before+after)/2)
             except (ValueError, IndexError):
                 pass
@@ -72,15 +106,19 @@ class Player:
         if action not in ('play-pause', 'next', 'previous'):
             return
         try:
-            self.actions.put_nowait(action)
+            snapshot = self.snapshot()
+            if snapshot:
+                self.actions.put_nowait({'command': action, 'player': snapshot.get('player')})
         except queue.Full:
             pass
 
-    def seek(self, position, uri):
+    def seek(self, position, uri, player=None):
         if not math.isfinite(position) or position < 0 or not uri:
             return False
         try:
-            self.actions.put_nowait((position, uri))
+            data = self.snapshot()
+            identity = data['artist']+'\t'+data['title'] if data else None
+            self.actions.put_nowait((position, uri, player or getattr(self, 'selected', None) or self.name, identity))
             return True
         except queue.Full:
             return False
@@ -101,7 +139,7 @@ class Clock:
 
     def position(self, data, now=None):
         now = time.monotonic() if now is None else now
-        key = (data['uri'], data['artist'], data['title'], data.get('seek_serial', 0))
+        key = (data.get('player'), data['uri'], data['artist'], data['title'], data.get('seek_serial', 0))
         measured = data['measured_at']
         projected = data['position'] + (min(.5, max(0, now-measured)) if data['playing'] else 0)
         current = self.anchor + (max(0, now-self.at) if self.playing else 0)
@@ -127,7 +165,7 @@ def fetch_lrc(data):
     if data.get('duration', 0) > 0:
         params['duration'] = round(data['duration'])
     request = urllib.request.Request('https://lrclib.net/api/get?' + urllib.parse.urlencode(params),
-                    headers={'User-Agent': 'sylrics/0.7.2 (https://github.com/math-eusz/spotify-live-lyrics)'})
+                    headers={'User-Agent': 'sylrics/0.8.0 (https://github.com/math-eusz/spotify-live-lyrics)'})
     with urllib.request.urlopen(request, timeout=8) as response:
         payload = json.loads(response.read(1_000_001))
     if not isinstance(payload, dict):

@@ -4,6 +4,12 @@
 
 Este histórico resume a evolução do sylrics em português. As primeiras versões foram numeradas retrospectivamente a partir das entregas completas do projeto. Cada versão publicada mantém seu código e seus arquivos originais.
 
+## 🖼️ 0.8.0 — Capa e leitura limpa
+
+Cartão de reprodução com capa, artista, álbum e progresso. Modo somente letras (`view lyrics` e tecla L), capas opcionais (`cover on/off`) e seleção automática de Spotify/spotify_player (`player auto`). As imagens são carregadas em segundo plano e limitadas a oito em memória. O modo somente letras suspende a captura do visualizador.
+
+Revisão da seleção MPRIS, controles por player, cliques após troca de faixa, limites de imagem e adaptação a janelas pequenas. Instalação com backup e preferências preservadas. **75 testes automatizados passaram**, incluindo reprodução simulada do spotify_player. Capas reais no Kitty e a sessão de áudio do usuário ainda precisam de validação no desktop.
+
 ## 🖱️ 0.7.2 — Interação e recuperação
 
 Clique nas palavras para buscar um trecho, com tempos por sílaba quando disponíveis e estimativas quando há apenas tempos por linha. Novos comandos `click-seek on/off` e `gaps dots-beta/off`. A animação de intervalos passou a ser beta explícita, desativada em instalações novas; pausas curtas não apagam as letras.

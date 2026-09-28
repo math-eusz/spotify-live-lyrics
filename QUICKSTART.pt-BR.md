@@ -4,7 +4,7 @@
 
 ## 🐧 Antes de começar
 
-O sylrics funciona em Linux, com **Python 3.10+** e **playerctl**. O Spotify precisa estar aberto e reproduzindo uma música. Spicetify e Spicy Lyrics são opcionais.
+O sylrics funciona em Linux, com **Python 3.10+** e **playerctl**. O Spotify ou spotify_player precisa estar aberto e reproduzindo uma música. Spicetify e Spicy Lyrics são opcionais.
 
 | Dependência | Para que serve | Obrigatória? |
 |---|---|---|
@@ -13,7 +13,8 @@ O sylrics funciona em Linux, com **Python 3.10+** e **playerctl**. O Spotify pre
 | curl e tar | Baixar e extrair o pacote pelos comandos abaixo. | Para este método de instalação |
 | CAVA | Fazer o visualizador acompanhar o áudio. | Não |
 | syncedlyrics | Oferecer uma fonte adicional de letras. O LRCLIB já é usado diretamente. | Não |
-| Kitty | Abrir uma janela com tamanho e família de fonte definidos por `sylrics font`. | Apenas para esse comando |
+| Kitty | Mostrar capas e abrir janelas com fonte definida por `sylrics font`. | Não, para letras |
+| Pillow (`python-pillow` no Arch) | Decodificar as capas dos álbuns. | Não |
 
 No Arch Linux / CachyOS:
 
@@ -21,10 +22,10 @@ No Arch Linux / CachyOS:
 sudo pacman -S --needed python playerctl curl tar
 ```
 
-Para adicionar o visualizador de áudio:
+Para adicionar visualizador de áudio e capas (use Kitty):
 
 ```sh
-sudo pacman -S --needed cava
+sudo pacman -S --needed cava python-pillow
 ```
 
 Em outras distribuições, use o gerenciador de pacotes correspondente. Estes comandos não instalam o Spotify.
@@ -34,21 +35,45 @@ Em outras distribuições, use o gerenciador de pacotes correspondente. Estes co
 Se o sylrics estiver aberto, encerre com `q` ou `Ctrl+C`. Depois:
 
 ```sh
-curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.7.2/sylrics-0.7.2.tar.gz
-tar -xzf sylrics-0.7.2.tar.gz
-cd sylrics-0.7.2
+curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.0/sylrics-0.8.0.tar.gz
+tar -xzf sylrics-0.8.0.tar.gz
+cd sylrics-0.8.0
 sh install.sh
 ```
 
 O instalador salva o programa em `~/.local/share/spotify-live-lyrics/` e cria os comandos em `~/.local/bin/`. Ele preserva as preferências existentes e faz backup dos arquivos substituídos na pasta `backup/` do programa. Não precisa ser executado com `sudo` e não altera o Spicetify.
 
-Abra um **novo terminal**, coloque uma música no Spotify e rode:
+Abra um **novo terminal**, coloque uma música no Spotify ou spotify_player e rode:
 
 ```sh
 sylrics
 ```
 
 O nome antigo `slyrics` continua funcionando.
+
+## 🔊 Usar spotify_player
+
+```sh
+sylrics source native
+sylrics player auto
+sylrics
+```
+
+Para fixar o cliente de terminal, use `sylrics player spotify_player`. Caso não apareça em `playerctl -l`, confira `enable_media_control = true` em `~/.config/spotify-player/app.toml` e reinicie o spotify_player. Sua compilação precisa incluir o recurso `media-control`. A ponte Spicy não é necessária.
+
+## 🖼️ Interface completa ou somente letras
+
+```sh
+sylrics view lyrics
+```
+
+Oculta cabeçalho, capa, progresso, moldura, rodapé e visualizador. Para voltar:
+
+```sh
+sylrics view full
+```
+
+A tecla **L** alterna os dois modos apenas na sessão. Para controlar somente a capa, use `sylrics cover on` ou `sylrics cover off`. As imagens requerem Kitty sem tmux, Pillow e uma capa informada pelo player. Em janelas pequenas o cabeçalho fica compacto.
 
 ## 🎨 Escolher um visual
 

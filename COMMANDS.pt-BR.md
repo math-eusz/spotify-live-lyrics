@@ -1,4 +1,4 @@
-# 🎛️ Comandos do sylrics · v0.7.2
+# 🎛️ Comandos do sylrics · v0.8.0
 
 [← Página inicial](README.md) · [🚀 Instalação](QUICKSTART.pt-BR.md)
 
@@ -7,6 +7,10 @@ As alterações de preferências ficam salvas. Os atalhos dentro do programa sã
 | Comando | Função |
 |---|---|
 | `sylrics` / `sylrics play` | Abrir o player; `slyrics` continua compatível. |
+| `sylrics view full` / `sylrics view lyrics` | Interface completa ou somente letras; salva e aplica ao vivo. |
+| `sylrics cover on` / `sylrics cover off` | Mostrar ou ocultar a capa do álbum; imagens requerem Kitty e Pillow. |
+| `sylrics player auto` | Detectar Spotify ou spotify_player em reprodução. |
+| `sylrics player spotify_player` | Fixar o cliente de terminal. Também aceita outro nome MPRIS. |
 | `sylrics demo` | Prévia sem Spotify. |
 | `sylrics --help` / `--version` | Ajuda ou versão instalada. |
 | `sylrics doctor` | Verificar dependências e configuração. |
@@ -59,6 +63,8 @@ Exemplo: `sylrics config set visualizer.bar_spacing 2`.
 | `visualizer.only_gaps` | true/false: visualizar só nos intervalos vocais estimados. |
 | `visualizer.show_label` | true/false: identificar áudio/animação/pausa. |
 | `visualizer.input` | auto, pipewire ou pulse, conforme suporte do CAVA. |
+| `layout.view` | full ou lyrics; modo somente letras preserva as demais preferências. |
+| `layout.cover` | true/false: capa no cabeçalho completo. |
 | `layout.active_bold` | true/false: negrito da frase atual. |
 | `layout.click_seek` | true/false: clique nas palavras (beta). |
 | `layout.font_family` | Família instalada; aplicada ao abrir com `sylrics font`. |
@@ -83,7 +89,7 @@ Exemplo: `sylrics config set visualizer.bar_spacing 2`.
 | `playback.fps` | 15–240; alvo de atualização, padrão 180. |
 | `playback.sync_offset` | −10 a 10 s; positivo adianta, negativo atrasa. |
 | `playback.type_ahead` | 0–0.5 s; adianta digitação sem antecipar troca de frase. |
-| `playback.player` | Nome MPRIS consultado pelo playerctl; padrão spotify. |
+| `playback.player` | auto por padrão; Spotify/spotify_player em reprodução, ou nome MPRIS explícito. |
 | `colors.text`, `colors.accent`, `colors.muted`, `colors.border`, `colors.background` | '#RRGGBB' ou default, usadas no tema estático. |
 
 Também existem as chaves correspondentes aos comandos próprios: `pages.mode`,
@@ -98,6 +104,7 @@ Também existem as chaves correspondentes aos comandos próprios: `pages.mode`,
 | Espaço | Pausar/retomar. |
 | n / p | Próxima/anterior. |
 | v | Alternar visualizador. |
+| l | Interface completa / somente letras. |
 | r | Alternar leitura dynamic/fixed/rolling. |
 | h | Alternar destaque beta. |
 | a | Alternar alinhamento. |
@@ -138,3 +145,5 @@ EDITOR=code sylrics config edit
 ```
 
 Os nomes dos comandos e valores (`true`, `false`, `rolling` etc.) permanecem como usados pelo programa. `true` ativa e `false` desativa. Execute `sylrics config list` para ver os valores atuais.
+
+**L** alterna entre interface completa e somente letras durante a reprodução (temporário). No modo somente letras, o visualizador e as capas ficam suspensos; as preferências são preservadas.

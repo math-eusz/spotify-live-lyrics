@@ -8,13 +8,14 @@ import sys
 import time
 import unicodedata
 from visualizer import fit_spectrum
+from covers import KittyCover
 
 DEFAULTS = {
-    'layout': {'alignment': 'center', 'vertical': 'center', 'padding': '3',
+    'layout': {'view': 'full', 'cover': 'true', 'alignment': 'center', 'vertical': 'center', 'padding': '3',
                'line_spacing': '1', 'lyrics_width': '86', 'border': 'true',
                'show_progress': 'true', 'show_source': 'false',
                'history_dim': 'true', 'active_bold': 'true', 'click_seek': 'true', 'font_family': 'monospace', 'word_highlight': 'off', 'font_size': '14', 'show_hints': 'false', 'show_footer': 'true', 'cursor': '▎', 'icons': 'true'},
-    'playback': {'source': 'native', 'player': 'spotify', 'fps': '180',
+    'playback': {'source': 'native', 'player': 'auto', 'fps': '180',
                  'sync_offset': '0', 'type_ahead': '0.10', 'typing_mode': 'smooth'},
     'pages': {'mode': 'dynamic', 'min_lines': '2', 'max_lines': '6',
               'target_seconds': '12', 'pause_seconds': '2', 'gap_animation': 'false'},
@@ -102,9 +103,9 @@ class Settings:
                                     ('lyrics_width', 10, 240)]:
                 if not low <= parser.getint('layout', name) <= high:
                     raise ValueError(name)
-            for name in ('border', 'show_progress', 'show_source', 'show_footer', 'show_hints', 'icons', 'history_dim', 'active_bold', 'click_seek'):
+            for name in ('cover', 'border', 'show_progress', 'show_source', 'show_footer', 'show_hints', 'icons', 'history_dim', 'active_bold', 'click_seek'):
                 parser.getboolean('layout', name)
-            choices = {('layout', 'word_highlight'): ('off', 'bold-beta'),('theme', 'mode'): ('static', 'dynamic'),
+            choices = {('layout', 'view'): ('full', 'lyrics'),('layout', 'word_highlight'): ('off', 'bold-beta'),('theme', 'mode'): ('static', 'dynamic'),
                        ('playback', 'typing_mode'): ('smooth', 'words-beta'),('playback', 'source'): ('native', 'auto', 'spicy'),
                        ('pages', 'mode'): ('dynamic', 'fixed', 'rolling'),
                        ('visualizer', 'mode'): ('auto', 'spectrum', 'activity', 'off'),
@@ -158,11 +159,13 @@ class Settings:
 class TerminalUI:
     def __init__(self, settings=None):
         self.settings = settings or Settings()
+        self.cover = KittyCover()
         self.previous = []
         self.last_size = None
         self.frame_key = None
         self.frame_rows = None
         self.hits = {}
+        self.cover_rect = None
 
     def color(self, name):
         if name == 'word':
@@ -170,7 +173,7 @@ class TerminalUI:
         if name == 'active':
             return ('\033[1m' if self.settings.flag('active_bold') else '') + self.color('accent')
         if self.settings.values['theme']['mode'] == 'dynamic':
-            # Indexed colors follow the terminal palette updated by Noctalia.
+            # Indexed colors follow the terminal palette updated by the desktop theme service (DMS, pywal, etc.).
             return {'text': '\033[39m', 'muted': '\033[90m',
                     'accent': '\033[34m', 'border': '\033[90m',
                     'background': '\033[49m'}[name]
@@ -181,7 +184,7 @@ class TerminalUI:
         return f'\033[{48 if name == "background" else 38};2;{r};{g};{b}m'
 
     def compose(self, artist, title, body, position=0, duration=0,
-                playing=True, source='', anchor=None, size=None, visual=None, notice='', gap=False, help_open=False):
+                playing=True, source='', anchor=None, size=None, visual=None, notice='', gap=False, help_open=False, album='', player=''):
         self.settings.reload()
         width, height = size or shutil.get_terminal_size((100, 28))
         # Reserve the final column: writing it can cause terminal auto-wrap.
@@ -189,15 +192,19 @@ class TerminalUI:
         height = max(1, height)
         frame_key = (artist, title, body, int(position), int(duration),
                      int(width * min(1, max(0, position / duration))) if duration > 0 else 0,
-                     playing, source, anchor, width, height, visual, notice, gap, help_open,
+                     playing, source, album, player, anchor, width, height, visual, notice, gap, help_open,
                      repr(self.settings.values), self.settings.error)
         if frame_key == self.frame_key:
             return self.frame_rows
         self.hits = {}
         layout = dict(self.settings.values['layout'])
+        lyrics_only = layout['view'] == 'lyrics' or height < 7 or width < 24
+        self.cover_rect = None
+        if lyrics_only:
+            visual = None
         if help_open:
             layout.update(line_spacing='0', vertical='center', alignment='left')
-        border = self.settings.flag('border') and width >= 20 and height >= 7
+        border = not lyrics_only and self.settings.flag('border') and width >= 20 and height >= 7
         edge = int(border)
         padding = min(int(layout['padding']), max(0, (width - 12) // 2))
         left = edge + padding
@@ -229,27 +236,43 @@ class TerminalUI:
                 put(y, width - 1, '│', 'border')
         header_y = edge + (1 if height >= 12 else 0)
         state = ('▶ Em reprodução' if playing else 'Ⅱ Pausado') if self.settings.flag('icons') else ('Em reprodução' if playing else 'Pausado')
-        title_text = f'{title}  —  {artist}' if artist else title or 'slyrics'
-        state_space = len(state) + 3 if usable >= 45 else 0
-        put(header_y, left, truncate(title_text, usable - state_space))
-        if state_space:
-            put(header_y, left + usable - len(state), state, 'accent')
-        content_top = header_y + 2
-        if self.settings.flag('show_progress') and height >= 9:
+        expanded = not lyrics_only and usable >= 56 and height >= 24
+        title_text = f'{title}  —  {artist}' if artist else title or 'sylrics'
+        text_left = left
+        if expanded and self.settings.flag('cover'):
+            self.cover_rect = (left, header_y, 12, 6)
+            put(header_y, left, '╭' + '─' * 10 + '╮', 'border')
+            for y in range(header_y+1, header_y+5):
+                put(y, left, '│' + ' ' * 10 + '│', 'border')
+            put(header_y+2, left+5, '♫', 'accent')
+            put(header_y+5, left, '╰' + '─' * 10 + '╯', 'border')
+            text_left += 15
+        text_width = usable - (text_left-left)
+        state_space = cells(state) + 3 if text_width >= 45 else 0
+        if not lyrics_only:
+            put(header_y, text_left, truncate(title if expanded else title_text, max(1, text_width-state_space)), 'accent')
+            if state_space:
+                put(header_y, left + usable - cells(state), state, 'accent')
+            if expanded:
+                put(header_y+2, text_left, truncate(artist, text_width))
+                put(header_y+3, text_left, truncate(album or 'Álbum não informado', text_width), 'muted')
+                put(header_y+5, text_left, truncate(player or source, text_width), 'muted')
+        progress_y = header_y + (7 if expanded else 1)
+        content_top = edge if lyrics_only else progress_y + 2
+        if not lyrics_only and self.settings.flag('show_progress') and height >= 9:
             elapsed = clock(position)
             total = clock(duration) if duration > 0 else '--:--'
             track_width = max(1, usable - len(elapsed) - len(total) - 4)
-            put(header_y + 1, left, elapsed, 'muted')
+            put(progress_y, left, elapsed, 'muted')
             bar_x = left + len(elapsed) + 2
-            put(header_y + 1, bar_x, '─' * track_width, 'border')
+            put(progress_y, bar_x, '─' * track_width, 'border')
             filled = int(track_width * min(1, max(0, position / duration))) if duration > 0 else 0
             if filled:
-                put(header_y + 1, bar_x, '━' * filled, 'accent')
-            put(header_y + 1, left + usable - len(total), total, 'muted')
-            content_top = header_y + 3
+                put(progress_y, bar_x, '━' * filled, 'accent')
+            put(progress_y, left + usable - len(total), total, 'muted')
         footer_y = height - edge - 2
         status = self.settings.error or notice or (source if self.settings.flag('show_source') else '')
-        footer = self.settings.flag('show_footer') and height >= 12 and (bool(status) or self.settings.flag('show_hints'))
+        footer = not lyrics_only and self.settings.flag('show_footer') and height >= 12 and (bool(status) or self.settings.flag('show_hints'))
         content_bottom = footer_y - 1 if footer else height - edge - 1
         visual = visual or ()
         visual_room = len(visual) + 2 if visual and height >= 16 else 0
@@ -264,6 +287,7 @@ class TerminalUI:
                 'Espaço  ·  Reproduzir ou pausar\n'
                 'N / P  ·  Próxima faixa / Faixa anterior\n'
                 'V  ·  Alternar visualizador\n'
+                'L  ·  Interface completa / Somente letras\n'
                 'R  ·  Alternar modo de leitura\n'
                 'H  ·  Destaque da palavra (beta)\n'
                 'Clique  ·  Buscar palavra (beta)\n'
@@ -368,15 +392,17 @@ class TerminalUI:
 
     def draw(self, *args, **kwargs):
         size = shutil.get_terminal_size((100, 28))
+        cover_png = kwargs.pop('cover_png', None)
         rows = self.compose(*args, **kwargs, size=size)
         output = []
         if size != self.last_size:
-            output.append('\033[2J')
+            output.append(self.cover.clear() + '\033[2J')
             self.previous = []
         for i, row in enumerate(rows):
             if i >= len(self.previous) or row != self.previous[i]:
                 output.append(f'\033[{i+1};1H' + row)
-        if output:
+        output.append(self.cover.update(cover_png, self.cover_rect, redraw=size != self.last_size))
+        if any(output):
             sys.stdout.write(''.join(output))
             sys.stdout.flush()
         self.previous, self.last_size = rows, size

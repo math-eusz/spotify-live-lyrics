@@ -6,7 +6,7 @@
 
 Letras sincronizadas, visualizador de áudio e uma interface que você pode deixar do seu jeito.
 
-**🐧 Linux · 🐍 Python 3.10+ · 📦 v0.7.2 · 📜 MIT**
+**🐧 Linux · 🐍 Python 3.10+ · 📦 v0.8.0 · 📜 MIT**
 
 [🚀 Instalar](#-instalação) · [🎛️ Comandos](COMMANDS.pt-BR.md) · [📖 Primeiros passos](QUICKSTART.pt-BR.md) · [📦 Versões](https://github.com/math-eusz/spotify-live-lyrics/releases)
 
@@ -18,6 +18,9 @@ Letras sincronizadas, visualizador de áudio e uma interface que você pode deix
 
 | Recurso | Como funciona |
 |---|---|
+| 🖼️ Capa do álbum | Cartão com capa, artista, álbum, estado e progresso; imagem no Kitty. |
+| 📄 Somente letras | Oculte toda a interface com `sylrics view lyrics` ou alterne com `L`. |
+| 🔊 Spotify e spotify_player | Seleção automática do player Spotify em reprodução via MPRIS. |
 | 🎶 Letras em tempo real | Acompanhe a música com digitação caractere por caractere. |
 | 🌊 Visualizador | Escolha barras, ondas ou pontos; ajuste largura, espaçamento e suavização. |
 | 📖 Leitura adaptável | Use blocos fixos, blocos por duração e pausas ou frases que saem individualmente. |
@@ -38,22 +41,22 @@ No **Arch Linux / CachyOS**:
 sudo pacman -S --needed python playerctl curl tar
 ```
 
-Visualizador de áudio opcional:
+Visualizador de áudio e capas opcionais (capas requerem Kitty):
 
 ```sh
-sudo pacman -S --needed cava
+sudo pacman -S --needed cava python-pillow
 ```
 
 Baixe e instale a versão atual:
 
 ```sh
-curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.7.2/sylrics-0.7.2.tar.gz
-tar -xzf sylrics-0.7.2.tar.gz
-cd sylrics-0.7.2
+curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.0/sylrics-0.8.0.tar.gz
+tar -xzf sylrics-0.8.0.tar.gz
+cd sylrics-0.8.0
 sh install.sh
 ```
 
-Abra um novo terminal, coloque uma música no Spotify e execute:
+Abra um novo terminal, coloque uma música no Spotify ou spotify_player e execute:
 
 ```sh
 sylrics
@@ -62,6 +65,25 @@ sylrics
 > 💡 Já usa o programa? Feche com `q` ou `Ctrl+C` e execute a mesma instalação. Seus ajustes são preservados e os arquivos substituídos recebem backup. O instalador do sylrics não precisa de `sudo`.
 
 Em outras distribuições Linux, instale as dependências pelo gerenciador de pacotes correspondente. Consulte o [guia de instalação](QUICKSTART.pt-BR.md) para detalhes e solução de problemas.
+
+## 🖼️ Capa, interface e player
+
+```sh
+sylrics view full          # Interface completa
+sylrics view lyrics        # Somente letras, sem cabeçalho, borda ou visualizador
+sylrics cover on           # Mostrar capa (Kitty + Pillow)
+sylrics cover off          # Ocultar capa
+sylrics player auto        # Spotify ou spotify_player em reprodução
+sylrics player spotify_player  # Usar apenas o cliente de terminal
+```
+
+Use **L** durante a reprodução para alternar a interface só nesta sessão. Os comandos acima ficam salvos e são aplicados ao vivo. O modo somente letras preserva as outras preferências e interrompe a captura do visualizador enquanto estiver ativo.
+
+As capas vêm dos metadados do player, são carregadas em segundo plano e mantidas apenas em memória (até oito). Em terminais sem protocolo Kitty, dentro do tmux ou sem Pillow, aparece um ícone. Janelas pequenas usam um cabeçalho compacto, sem capa.
+
+O spotify_player precisa publicar os controles MPRIS. Em `~/.config/spotify-player/app.toml`, confirme `enable_media_control = true` e reinicie o cliente se ele não aparecer em `playerctl -l`. A compilação precisa incluir `media-control`; a [documentação do spotify_player](https://github.com/aome510/spotify-player/blob/master/docs/config.md) explica essa opção.
+
+A seleção automática considera apenas os players da família Spotify; outros aplicativos não assumem a reprodução. Se houver dois tocando, mantém o já selecionado. Configurações antigas com `player = spotify` também permitem a detecção do cliente de terminal. Para fixar outro nome MPRIS, use `sylrics player NOME`.
 
 ## 🎨 Deixe com a sua cara
 
@@ -113,6 +135,7 @@ Os pontos vêm desligados em instalações novas; o clique vem ligado. Atualiza�
 | `Espaço` | Reproduzir ou pausar. |
 | `n` / `p` | Próxima faixa / faixa anterior. |
 | `v` | Alternar o visualizador. |
+| `l` | Alternar entre interface completa e somente letras. |
 | `r` | Alternar o modo de leitura. |
 | `h` | Ativar ou desativar o destaque beta da palavra. |
 | `a` | Alternar o alinhamento. |
@@ -165,7 +188,7 @@ sylrics config restore
 
 ## 📦 Histórico e colaboração
 
-A versão **0.7.2** trouxe clique nas palavras, controle explícito dos intervalos beta e restauração dos padrões pela tecla `0`.
+A versão **0.8.0** traz capa do álbum, cartão de reprodução, modo somente letras e detecção automática do spotify_player. Os controles de palavras, as preferências e os backups continuam disponíveis.
 
 Veja o [histórico de alterações em português](CHANGELOG.md) ou baixe uma [versão publicada](https://github.com/math-eusz/spotify-live-lyrics/releases).
 
@@ -177,7 +200,7 @@ Para verificar o código em uma cópia do repositório:
 python -m unittest discover -s tests -v
 ```
 
-A v0.7.2 passou por **67 testes automatizados**, incluindo instalação e interação em terminal com player simulado. Os tempos fornecidos pelas letras e o comportamento do Spotify precisam ser avaliados na reprodução real. Os 180 FPS são uma meta de atualização, não uma garantia de desempenho.
+A v0.8.0 passou por **75 testes automatizados**, incluindo instalação e interação em terminal com player simulado. Os tempos fornecidos pelas letras e o comportamento do Spotify precisam ser avaliados na reprodução real. Os 180 FPS são uma meta de atualização, não uma garantia de desempenho.
 
 ## 📜 Licença e créditos
 
