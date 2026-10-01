@@ -6,7 +6,7 @@
 
 Letras sincronizadas, visualizador de áudio e uma interface que você pode deixar do seu jeito.
 
-**🐧 Linux · 🐍 Python 3.10+ · 📦 v0.8.1 · 📜 MIT**
+**🐧 Linux · 🐍 Python 3.10+ · 📦 v0.8.2 · 📜 MIT**
 
 [🚀 Instalar](#-instalação) · [🎛️ Comandos](COMMANDS.pt-BR.md) · [📖 Primeiros passos](QUICKSTART.pt-BR.md) · [📦 Versões](https://github.com/math-eusz/spotify-live-lyrics/releases)
 
@@ -19,6 +19,8 @@ Letras sincronizadas, visualizador de áudio e uma interface que você pode deix
 | Recurso | Como funciona |
 |---|---|
 | 🖼️ Capa do álbum | Cartão com capa, artista, álbum, estado e progresso; imagem no Kitty. |
+| ⏯️ Botões clicáveis | Anterior, reproduzir/pausar e próxima, inclusive no mini player. |
+| 🎧 Player local · beta | Reproduza arquivos locais com mpv e edite a fila dentro do sylrics. |
 | 📄 Somente letras | Oculte toda a interface com `sylrics view lyrics` ou alterne com `L`. |
 | 🔊 Spotify e spotify_player | Seleção automática do player Spotify em reprodução via MPRIS. |
 | 🎶 Letras em tempo real | Acompanhe a música com digitação caractere por caractere. |
@@ -29,7 +31,7 @@ Letras sincronizadas, visualizador de áudio e uma interface que você pode deix
 | 💬 Intervalos animados · beta | Substitua as letras por “...” durante as pausas, se quiser. |
 | 💾 Preferências e backup | Ajuste pelo terminal ou pelo arquivo de configuração e restaure quando precisar. |
 
-**O Spicy Lyrics é opcional.** O modo nativo é o padrão e funciona sem Spicetify. É necessário ter um player compatível em execução; o sylrics acompanha a reprodução, não toca as músicas sozinho.
+**O Spicy Lyrics é opcional.** O modo nativo é o padrão e funciona sem Spicetify. Para acompanhar Spotify/spotify_player, mantenha o player aberto. O novo **modo local beta** reproduz arquivos do computador com mpv, sem Spotify, playerctl ou Spicetify.
 
 ## 🚀 Instalação
 
@@ -50,9 +52,9 @@ sudo pacman -S --needed cava python-pillow
 Baixe e instale a versão atual:
 
 ```sh
-curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.1/sylrics-0.8.1.tar.gz
-tar -xzf sylrics-0.8.1.tar.gz
-cd sylrics-0.8.1
+curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.2/sylrics-0.8.2.tar.gz
+tar -xzf sylrics-0.8.2.tar.gz
+cd sylrics-0.8.2
 sh install.sh
 ```
 
@@ -79,7 +81,7 @@ sylrics player spotify_player  # Usar apenas o cliente de terminal
 
 Use **L** durante a reprodução para alternar a interface só nesta sessão. Os comandos acima ficam salvos e são aplicados ao vivo. O modo somente letras preserva as outras preferências e interrompe a captura do visualizador enquanto estiver ativo.
 
-As capas vêm dos metadados do player, são carregadas em segundo plano e mantidas apenas em memória (até oito). Em terminais sem protocolo Kitty, dentro do tmux ou sem Pillow, aparece um ícone. Janelas pequenas usam um cabeçalho compacto, sem capa.
+As capas vêm dos metadados do player, são carregadas em segundo plano e mantidas apenas em memória (até oito). Em terminais sem protocolo Kitty, dentro do tmux ou sem Pillow, aparece um ícone. Ao reduzir a janela, a capa diminui e o cabeçalho assume um formato de mini player. A capa permanece habilitada até você desativá-la ou selecionar o modo somente letras. Sem uma imagem disponível, aparece um ícone.
 
 O spotify_player precisa publicar os controles MPRIS. Em `~/.config/spotify-player/app.toml`, confirme `enable_media_control = true` e reinicie o cliente se ele não aparecer em `playerctl -l`. A compilação precisa incluir `media-control`; a [documentação do spotify_player](https://github.com/aome510/spotify-player/blob/master/docs/config.md) explica essa opção.
 
@@ -202,7 +204,7 @@ sylrics config restore
 
 ## 📦 Histórico e colaboração
 
-A versão **0.8.1** revisa a sincronização por sílaba, reduz consultas ao player e trabalho repetido de renderização, adiciona perfis de desempenho e melhora a recuperação de capas, cache e instalação. As preferências existentes são preservadas.
+A versão **0.8.2** adiciona mini player responsivo, capa proporcional à janela, controles clicáveis e reprodução local com fila editável (beta). Também melhora o contraste do tema dinâmico e a recuperação do CAVA. O instalador faz backup dos arquivos substituídos e da configuração; suas preferências são preservadas.
 
 Veja o [histórico de alterações em português](CHANGELOG.md) ou baixe uma [versão publicada](https://github.com/math-eusz/spotify-live-lyrics/releases).
 
@@ -214,10 +216,34 @@ Para verificar o código em uma cópia do repositório:
 python -m unittest discover -s tests -v
 ```
 
-A v0.8.1 passou por **85 testes automatizados**, incluindo instalação e interação em terminal com player simulado. Os tempos fornecidos pelas letras e o comportamento do Spotify precisam ser avaliados na reprodução real. Os 180 FPS são uma meta de atualização, não uma garantia de desempenho.
+Os testes automatizados cobrem instalação, redimensionamento, botões em terminal, busca por palavra e fila local. O CI Linux também verifica o protocolo IPC e a reprodução de áudio pelo mpv com saída nula (sem alto-falantes). Os tempos fornecidos pelas letras e o comportamento do Spotify precisam ser avaliados na reprodução real. Os 180 FPS são uma meta de atualização, não uma garantia de desempenho.
 
 ## 📜 Licença e créditos
 
 Distribuído sob a [licença MIT](LICENSE).
 
 O projeto utiliza playerctl para controlar a reprodução, LRCLIB e opcionalmente syncedlyrics para obter letras, CAVA para visualizar áudio e uma ponte opcional com Spicy Lyrics. O sylrics é um projeto independente, sem vínculo oficial com o Spotify.
+
+## 🎧 Reprodução independente · beta
+
+```sh
+# Arch Linux / CachyOS — dependência opcional do modo local
+sudo pacman -S --needed mpv
+sylrics local-beta ~/Músicas
+# Ou escolha arquivos, na ordem desejada
+sylrics local-beta "/caminho/artista - faixa.mp3" "/caminho/outra.flac"
+```
+
+A pasta é lida em ordem alfabética, sem subpastas; limite de 1000 arquivos por sessão. São aceitos MP3, FLAC, OGG, Opus, WAV, M4A, AAC, WMA e AIFF, conforme os codecs do mpv. O comando abre o sylrics e um processo mpv próprio; ao sair, esse processo é encerrado. Nenhuma alteração é feita na configuração pessoal do mpv.
+
+**Fila:** pressione `F` para abrir/fechar, `J`/`K` para selecionar, `U`/`D` para mover para cima/baixo e `Enter` para reproduzir a seleção. A ordem vale apenas para a sessão e não modifica os arquivos. Esta fila é do **modo local**; visualizar ou reorganizar a fila do Spotify ainda não está implementado.
+
+Um arquivo `faixa.lrc` ao lado de `faixa.mp3` tem prioridade sobre a busca online. Os metadados do arquivo são usados na busca; sem artista/título corretos, o resultado pode ser impreciso. Para capa local, coloque `cover.jpg`, `cover.png`, `folder.jpg` ou `folder.png` na pasta. Extração da capa embutida no áudio ainda não está incluída. A reprodução local funciona offline; a busca online de letras exige conexão. Este beta não reproduz o catálogo do Spotify sem o cliente.
+
+```sh
+sylrics controls on       # Mostrar botões de reprodução
+sylrics controls off      # Ocultar botões; atalhos continuam disponíveis
+sylrics cover on          # Mostrar a capa, inclusive na janela compacta
+sylrics view lyrics       # Mostrar somente letras
+sylrics view full         # Restaurar a interface completa
+```

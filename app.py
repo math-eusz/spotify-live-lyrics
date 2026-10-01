@@ -1,4 +1,4 @@
-"""Unified native/automatic/Spicy player for sylrics 0.8.1."""
+"""Unified native/automatic/Spicy player for sylrics 0.8.2."""
 import os
 import select
 import shutil
@@ -60,7 +60,7 @@ class Keyboard:
             termios.tcsetattr(sys.stdin.fileno(),termios.TCSADRAIN,self.saved)
 
 
-def run(path,source=None,demo=False):
+def run(path,source=None,demo=False,local_files=None):
     from pathlib import Path
     from lrc_store import LrcStore
     cache_warning=''
@@ -77,12 +77,15 @@ def run(path,source=None,demo=False):
         print(settings.error)
         return 1
     mode=source or settings.values['playback']['source']
-    if not demo and mode=='native' and not shutil.which('playerctl'):
+    if not demo and not local_files and mode=='native' and not shutil.which('playerctl'):
         print('playerctl não encontrado. No Arch/CachyOS: sudo pacman -S playerctl')
         return 1
     ui=TerminalUI(settings)
     loader=Lyrics() if not demo else None
     native=bridge=None
+    if local_files:
+        from local_player import LocalPlayer
+        native=LocalPlayer(local_files)
     player_name=None
     pages=Pages()
     clock=Clock()
@@ -93,6 +96,8 @@ def run(path,source=None,demo=False):
     session={}
     signature=settings.signature
     help_open=False
+    queue_open=False
+    selected_entry=None
     displayed=None
     displayed_rows=[]
     displayed_size=None
@@ -113,8 +118,8 @@ def run(path,source=None,demo=False):
                 for (section,key),value in session.items():
                     settings.values[section][key]=value
                 playback=settings.values['playback']
-                mode=source or playback['source']
-                if not demo:
+                mode='native' if local_files else source or playback['source']
+                if not demo and not local_files:
                     wanted=playback['player']
                     if (mode!='spicy' or shutil.which('playerctl')) and wanted!=player_name:
                         if native:
@@ -126,19 +131,25 @@ def run(path,source=None,demo=False):
                     elif mode=='native' and bridge:
                         bridge.close()
                         bridge=None
-                keyboard.capture_mouse(settings.flag('click_seek') and not demo)
+                keyboard.capture_mouse((settings.flag('click_seek') or settings.flag('controls')) and not demo)
                 events=keyboard.read()
                 keys=''.join(value for kind,value in events if kind=='key')
                 for kind,value in events:
-                    if '0' in keys or kind != 'click' or help_open or not settings.flag('click_seek'):
+                    if '0' in keys or kind != 'click' or help_open:
                         continue
                     if displayed_size != shutil.get_terminal_size((100,28)):
                         continue
                     hit=ui.hits.get(value)
-                    if not hit or not displayed or not native:
+                    if not displayed or not native:
                         continue
                     live=native.snapshot()
                     if not live or not same_track(live,displayed) or live['uri'] != displayed['uri'] or live.get('player') != displayed.get('player'):
+                        continue
+                    action=ui.controls.get(value)
+                    if action:
+                        native.control(action)
+                        continue
+                    if not hit or queue_open or not settings.flag('click_seek'):
                         continue
                     row,offset=hit
                     line=displayed_rows[row] if row<len(displayed_rows) else None
@@ -168,7 +179,24 @@ def run(path,source=None,demo=False):
                         notice='Não foi possível restaurar: '+str(error)
                     notice_until=tick+4
                     continue
+                entries=native.playlist() if local_files else []
+                if entries and selected_entry not in [entry['id'] for entry in entries]:
+                    selected_entry=next((entry['id'] for entry in entries if entry.get('current')),entries[0]['id'])
                 for key in keys:
+                    if key=='f':
+                        if local_files:
+                            queue_open=not queue_open
+                            help_open=False
+                        else:
+                            notice='Fila editável disponível em sylrics local-beta (arquivos locais)'
+                            notice_until=tick+5
+                    if queue_open and entries:
+                        index=next((i for i,e in enumerate(entries) if e['id']==selected_entry),0)
+                        if key in 'jk':
+                            index=max(0,min(len(entries)-1,index+(1 if key=='j' else -1)))
+                            selected_entry=entries[index]['id']
+                        if key in 'ud\r\n':
+                            native.queue_action(selected_entry,{'u':'up','d':'down','\r':'play','\n':'play'}[key])
                     if key in ' np' and native:
                         native.control({' ':'play-pause','n':'next','p':'previous'}[key])
                     if key=='l':
@@ -202,7 +230,7 @@ def run(path,source=None,demo=False):
                     for (section,option),value in session.items():
                         settings.values[section][option]=value
                 if demo:
-                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.8.1',duration=30,
+                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.8.2',duration=30,
                               position=(tick-started)%30,measured_at=tick,playing=True)
                     lines,label=demo_lines,'Demonstração'
                 else:
@@ -225,17 +253,29 @@ def run(path,source=None,demo=False):
                     native_display = native.snapshot() if native else None
                     displayed = native_display if same_track(native_display,data) else None
                     displayed_rows = list(pages.row_lines) if lines else []
+                    queue_text=None
+                    if queue_open:
+                        entries=native.playlist()
+                        index=next((i for i,e in enumerate(entries) if e['id']==selected_entry),0)
+                        rows=['Fila local · J/K selecionar · U/D mover · Enter tocar · F fechar']
+                        for i,entry in enumerate(entries):
+                            marker='›' if entry['id']==selected_entry else ' '
+                            current='▶ ' if entry.get('current') else '  '
+                            rows.append(f'{marker} {i+1}. {current}'+str(entry.get('title') or Path(entry['filename']).stem))
+                        queue_text='\n'.join(rows)
                     bars=visual.frame(visual_config,data['playing'],gap,tick)
                     metadata=native_display if same_track(native_display,data) else data
                     artwork=covers.get(metadata.get('art_url','')) if supported() and settings.flag('cover') and settings.values['layout']['view']=='full' else None
                     ui.draw(data['artist'],data['title'],body,position,data.get('duration',0),data['playing'],
-                            label,anchor,album=metadata.get('album',''),player=metadata.get('player',''),cover_png=artwork,visual=bars,gap=gap,help_open=help_open,notice=notice if tick<notice_until else '')
+                            label,anchor,album=metadata.get('album',''),player=metadata.get('player',''),cover_png=artwork,queue_text=queue_text,visual=bars,gap=gap,help_open=help_open,notice=notice if tick<notice_until else '')
                 else:
                     displayed=None
                     displayed_rows=[]
                     message='Abra um player compatível e toque uma música.' if mode!='spicy' else (
                         bridge.error or 'Abra a letra no Spicy Lyrics para conectar.')
-                    ui.draw('','sylrics · 0.8.1',message,playing=False,
+                    if local_files:
+                        message=native.error or 'Carregando áudio local…'
+                    ui.draw('','sylrics · 0.8.2',message,playing=False,
                             notice='sylrics doctor · Diagnóstico',source=mode,help_open=help_open)
                 displayed_size=ui.last_size
                 fps=int(playback['fps'] if data and data['playing'] else playback['idle_fps'])

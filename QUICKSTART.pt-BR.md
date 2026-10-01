@@ -4,13 +4,14 @@
 
 ## 🐧 Antes de começar
 
-O sylrics funciona em Linux, com **Python 3.10+** e **playerctl**. O Spotify ou spotify_player precisa estar aberto e reproduzindo uma música. Spicetify e Spicy Lyrics são opcionais.
+O sylrics funciona em Linux, com **Python 3.10+** e **playerctl**. Para acompanhar o Spotify ou spotify_player, ele precisa estar aberto e reproduzindo uma música. Para arquivos locais, o beta usa mpv e dispensa Spotify e playerctl. Spicetify e Spicy Lyrics são opcionais.
 
 | Dependência | Para que serve | Obrigatória? |
 |---|---|---|
 | Python 3.10+ | Executar o programa. | Sim |
 | playerctl | Consultar e controlar o player no modo nativo; necessário para os controles e cliques. | Sim, para o uso recomendado |
 | curl e tar | Baixar e extrair o pacote pelos comandos abaixo. | Para este método de instalação |
+| mpv | Reproduzir arquivos locais e editar a fila. | Somente para `local-beta` |
 | CAVA | Fazer o visualizador acompanhar o áudio. | Não |
 | syncedlyrics | Oferecer uma fonte adicional de letras. O LRCLIB já é usado diretamente. | Não |
 | Kitty | Mostrar capas e abrir janelas com fonte definida por `sylrics font`. | Não, para letras |
@@ -35,9 +36,9 @@ Em outras distribuições, use o gerenciador de pacotes correspondente. Estes co
 Se o sylrics estiver aberto, encerre com `q` ou `Ctrl+C`. Depois:
 
 ```sh
-curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.1/sylrics-0.8.1.tar.gz
-tar -xzf sylrics-0.8.1.tar.gz
-cd sylrics-0.8.1
+curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.2/sylrics-0.8.2.tar.gz
+tar -xzf sylrics-0.8.2.tar.gz
+cd sylrics-0.8.2
 sh install.sh
 ```
 
@@ -165,3 +166,16 @@ Teste uma prévia independente do Spotify com `sylrics demo`. Para relatar um pr
 | Executáveis | `~/.local/bin/sylrics` e `~/.local/bin/slyrics` |
 
 A configuração respeita `XDG_CONFIG_HOME`. O programa recolhe arquivos LRC sincronizados soltos na pasta pessoal e mantém apenas os dez mais recentes na pasta de letras. Consulte `sylrics cache info` para conferir o local usado.
+
+## 🎧 Sem Spotify: arquivos locais (beta)
+
+```sh
+sudo pacman -S --needed mpv
+sylrics local-beta ~/Músicas
+```
+
+Use `F` para ver a fila, `J`/`K` para selecionar, `U`/`D` para reorganizar e `Enter` para tocar. A pasta não é percorrida recursivamente. Para escolher a ordem inicial, passe vários arquivos ao comando. Ao encerrar o sylrics, a reprodução local também termina. A fila do Spotify não é alterada.
+
+O mini player aparece automaticamente ao reduzir a janela. A capa encolhe junto e os botões ficam compactos. `sylrics controls off` oculta os botões; `sylrics controls on` restaura. As capas continuam dependendo de uma imagem disponível, Kitty sem tmux e Pillow.
+
+Se o visualizador não recebe áudio, teste `cava` sozinho durante a reprodução. No modo `spectrum`, o sylrics agora mostra uma mensagem de indisponibilidade. Em sistemas com PulseAudio ou compatibilidade pipewire-pulse, experimente `sylrics config set visualizer.input pulse`; restaure a seleção automática com `sylrics config set visualizer.input auto`. Isso depende do suporte da sua compilação do CAVA.

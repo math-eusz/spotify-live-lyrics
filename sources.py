@@ -212,13 +212,19 @@ class Lyrics:
             raw, label = '', 'Letra não encontrada · visualizador disponível'
             downloaded = False
             try:
-                try:
-                    raw = self.store.read(key)
-                except OSError:
-                    raw = ''
+                if data.get('local_path'):
+                    from pathlib import Path
+                    local = Path(data['local_path']).with_suffix('.lrc')
+                    if local.is_file() and local.stat().st_size <= 2*1024*1024:
+                        raw = local.read_text(encoding='utf-8-sig',errors='replace')
+                if not raw:
+                    try:
+                        raw = self.store.read(key)
+                    except OSError:
+                        raw = ''
                 lines = parse_lyrics(raw) if raw else []
                 if lines:
-                    label = 'Cache'
+                    label = 'Arquivo local / cache' if data.get('local_path') else 'Cache'
                 else:
                     raw, label = fetch_lrc(data)
                     downloaded = True

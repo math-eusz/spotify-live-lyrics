@@ -27,6 +27,10 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Install local audio beta test dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mpv
       - name: Validate release automation
         run: python -m unittest discover -s tests -v
       - name: Publish numbered releases and original assets
@@ -34,3 +38,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: python releases/publish.py --publish
+

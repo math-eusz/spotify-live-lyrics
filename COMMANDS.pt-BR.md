@@ -1,4 +1,4 @@
-# 🎛️ Comandos do sylrics · v0.8.1
+# 🎛️ Comandos do sylrics · v0.8.2
 
 [← Página inicial](README.md) · [🚀 Instalação](QUICKSTART.pt-BR.md)
 
@@ -154,3 +154,23 @@ Os nomes dos comandos e valores (`true`, `false`, `rolling` etc.) permanecem com
 **L** alterna entre interface completa e somente letras durante a reprodução (temporário). No modo somente letras, o visualizador e as capas ficam suspensos; as preferências são preservadas.
 
 Os perfis de desempenho preservam aparência, fonte de letras e sincronização. Os limites de FPS são metas, dependentes do terminal e da máquina. Tempos reais por sílaba têm prioridade também no modo `words-beta`.
+
+## 🎧 Mini player e reprodução local · v0.8.2
+
+| Comando | Função |
+|---|---|
+| `sylrics controls on` / `sylrics controls off` | Mostrar/ocultar botões clicáveis; independente do clique nas letras. |
+| `sylrics local-beta ~/Músicas` | Tocar arquivos da pasta com mpv, sem Spotify; não inclui subpastas. |
+| `sylrics local-beta "faixa.mp3" "outra.flac"` | Iniciar uma fila com os arquivos na ordem indicada. |
+| `sylrics config set layout.controls true` | Alternativa por configuração para habilitar os botões. |
+
+| Tecla (no modo local beta) | Função |
+|---|---|
+| `F` | Abrir/fechar a fila local. |
+| `J` / `K` | Selecionar próxima/anterior entrada da fila. |
+| `U` / `D` | Mover a entrada selecionada para cima/baixo. |
+| `Enter` | Reproduzir a entrada selecionada. |
+
+Os três últimos atalhos atuam apenas com a fila aberta. Espaço, N/P e os botões continuam controlando a reprodução. A fila é temporária, até 1000 arquivos, e não altera os arquivos no disco. Comandos externos `sylrics control` continuam destinados aos players MPRIS; no modo local, use os controles da própria janela. Não há edição da fila do Spotify nesta versão.
+
+O layout compacto é automático, sem um comando adicional. A capa acompanha o tamanho da janela; `cover off` e `view lyrics` continuam sendo as opções para ocultá-la. Em dimensões extremas, texto e controles são recortados para caber.

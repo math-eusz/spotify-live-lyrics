@@ -17,6 +17,7 @@ class Visualizer:
         self.received = 0
         self.key = None
         self.failed = False
+        self.retry_at = 0
         self.lock = threading.Lock()
         self.smoothed = []
         self.last_frame = None
@@ -25,9 +26,11 @@ class Visualizer:
     def configure(self, settings):
         key = (settings['mode'], settings['width'], settings['input'], settings['sensitivity'])
         if key == self.key:
-            return
+            if not (self.proc and self.proc.poll() is not None and time.monotonic() >= self.retry_at):
+                return
         self.close()
         self.key = key
+        self.retry_at = time.monotonic()+5
         self.failed = False
         if settings['mode'] not in ('auto', 'spectrum'):
             return
@@ -106,7 +109,7 @@ class Visualizer:
             age = now - self.received
         has_audio = mode in ('auto', 'spectrum') and bool(values) and age < 1
         if mode == 'spectrum' and not has_audio:
-            return ('Áudio indisponível · verifique o CAVA',) if show_label else ()
+            return ('Áudio indisponível · verifique o CAVA',)
         if has_audio:
             values = (values + [0] * width)[:width]
             label = '♫ Intervalo vocal · áudio' if gap else '♫ Áudio'

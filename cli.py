@@ -11,7 +11,7 @@ import sys
 from terminal_ui import CONFIG_PATH, Settings
 from preferences import ensure, parser_for, set_value, set_theme, THEMES, set_preset, PRESETS, restore, reset, PERFORMANCE, set_performance
 
-VERSION='0.8.1'
+VERSION='0.8.2'
 
 
 def main(argv=None):
@@ -24,6 +24,10 @@ def main(argv=None):
     play.add_argument('--source',choices=('native','auto','spicy'),default=argparse.SUPPRESS)
     performance=sub.add_parser('performance',help='perfil de desempenho, sem alterar o visual')
     performance.add_argument('name',choices=tuple(PERFORMANCE))
+    local=sub.add_parser('local-beta',help='reproduzir arquivos locais com mpv, sem Spotify (beta)')
+    local.add_argument('files',nargs='+',help='arquivos de áudio ou pastas (sem recursão)')
+    controls=sub.add_parser('controls',help='mostrar ou ocultar botões de reprodução')
+    controls.add_argument('mode',choices=('on','off'))
     sub.add_parser('demo',help='prévia interativa sem Spotify')
     select=sub.add_parser('source',help='salvar a fonte preferida')
     select.add_argument('mode',choices=('native','auto','spicy'))
@@ -70,7 +74,7 @@ def main(argv=None):
         if args.command=='doctor':
             config=Settings(args.config);config.reload()
             print('sylrics '+VERSION+'\nConfiguração: '+str(args.config))
-            for executable,role in [('playerctl','controle do player nativo'),('cava','espectro de áudio opcional'),
+            for executable,role in [('playerctl','controle do player nativo'),('cava','espectro de áudio opcional'),('mpv','reprodução local beta opcional'),
                                     ('syncedlyrics','fonte adicional opcional'),('spicetify','ponte opcional')]:
                 print(f'{executable}: {shutil.which(executable) or "não instalado"} · {role}')
             from sources import available_players, resolve_player
@@ -166,9 +170,9 @@ def main(argv=None):
             set_value(args.config,key,args.mode)
             print(key+' = '+args.mode+' · salvo')
             return 0
-        if args.command in ('view','player','cover'):
-            key={'view':'layout.view','player':'playback.player','cover':'layout.cover'}[args.command]
-            value=args.name if args.command=='player' else ('true' if args.mode=='on' else 'false') if args.command=='cover' else args.mode
+        if args.command in ('view','player','cover','controls'):
+            key={'view':'layout.view','player':'playback.player','cover':'layout.cover','controls':'layout.controls'}[args.command]
+            value=args.name if args.command=='player' else ('true' if args.mode=='on' else 'false') if args.command in ('cover','controls') else args.mode
             set_value(args.config,key,value)
             print(key+' = '+value+' · salvo')
             return 0
@@ -201,6 +205,9 @@ def main(argv=None):
                 print('Configurada: '+str(config_path()) if config_path().is_file() else 'Não configurada (opcional).')
             return 0
         from app import run
+        if args.command=='local-beta':
+            from local_player import collect_files
+            return run(args.config,local_files=collect_files(args.files))
         return run(args.config,args.source,demo=args.command=='demo')
     except (OSError,ValueError,KeyError,configparser.Error,subprocess.SubprocessError) as error:
         print('sylrics: '+str(error),file=sys.stderr)

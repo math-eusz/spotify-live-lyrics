@@ -1,3 +1,12 @@
+## 0.8.2 — Mini player e reprodução local beta
+
+- Capa responsiva e persistente no modo completo, com controles clicáveis e composição compacta.
+- Controles opcionais, independentes da busca por palavra; contraste legível no tema dinâmico.
+- Player local beta via mpv, arquivos/pastas, letras LRC locais e capa externa da pasta.
+- Fila local navegável e reordenável por identificadores estáveis, sem alterar os arquivos.
+- CAVA reiniciado após encerramento inesperado; diagnóstico visível no modo espectro.
+- Backup da configuração junto aos arquivos instalados e testes de regressão da interface/IPC.
+
 # 📦 Histórico de versões
 
 [← Página inicial](README.md) · [⬇️ Downloads das versões](https://github.com/math-eusz/spotify-live-lyrics/releases)

@@ -1,8 +1,8 @@
 complete -c sylrics -f
-complete -c sylrics -n '__fish_use_subcommand' -a 'play demo performance view player cover gaps click-seek config theme preset reading typing highlight font source visualizer control doctor cache bridge' -d 'sylrics command'
-complete -c sylrics -l source -xa 'native auto spicy' -d 'Lyric source'
-complete -c sylrics -l config -r -d 'Alternative INI file'
-complete -c sylrics -l version -d 'Version'
+complete -c sylrics -n '__fish_use_subcommand' -a 'play local-beta controls demo performance view player cover gaps click-seek config theme preset reading typing highlight font source visualizer control doctor cache bridge' -d 'Comando do sylrics'
+complete -c sylrics -l source -xa 'native auto spicy' -d 'Fonte de letras'
+complete -c sylrics -l config -r -d 'Arquivo INI alternativo'
+complete -c sylrics -l version -d 'Versão'
 complete -c sylrics -n '__fish_seen_subcommand_from config' -a 'path list get set edit restore reset'
 complete -c sylrics -n '__fish_seen_subcommand_from theme' -a 'warm purple mono ocean dynamic'
 complete -c sylrics -n '__fish_seen_subcommand_from cache' -a 'info clear'
@@ -30,3 +30,7 @@ complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'layout.view lay
 
 complete -c sylrics -n '__fish_seen_subcommand_from performance' -a 'balanced smooth eco'
 complete -c sylrics -n '__fish_seen_subcommand_from get set' -a 'playback.idle_fps visualizer.fps'
+
+complete -c sylrics -n "__fish_seen_subcommand_from controls" -a "on off"
+complete -c sylrics -n "__fish_seen_subcommand_from local-beta" -F
+complete -c sylrics -n "__fish_seen_subcommand_from get set" -a "layout.controls"
