@@ -181,6 +181,19 @@
       "COMMANDS.pt-BR.md"
     ],
     "source_bundle": true,
+    "latest": false
+  },
+  {
+    "tag": "v0.8.1",
+    "commit": "8c06fb045f7b2f5c4090546a709919da7a145d2f",
+    "title": "v0.8.1 — Revisão de desempenho e sincronização",
+    "notes": "releases/notes/v0.8.1.md",
+    "assets": [
+      "ui.ini",
+      "QUICKSTART.pt-BR.md",
+      "COMMANDS.pt-BR.md"
+    ],
+    "source_bundle": true,
     "latest": true
   }
 ]
