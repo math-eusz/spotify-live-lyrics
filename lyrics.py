@@ -33,12 +33,12 @@ def command(args, timeout=2):
             # Keep these side effects temporary, regardless of where sylrics starts.
             with tempfile.TemporaryDirectory(prefix='sylrics-lookup-') as directory:
                 return subprocess.check_output(
-                    args, text=True, stderr=subprocess.DEVNULL, timeout=timeout,
+                    args, text=True, errors="replace", stderr=subprocess.DEVNULL, timeout=timeout,
                     cwd=directory
-                ).strip()
+                ).rstrip('\r\n')
         return subprocess.check_output(
-            args, text=True, stderr=subprocess.DEVNULL, timeout=timeout
-        ).strip()
+            args, text=True, errors="replace", stderr=subprocess.DEVNULL, timeout=timeout
+        ).rstrip('\r\n')
     except (OSError, subprocess.SubprocessError):
         return ""
 
@@ -85,20 +85,32 @@ def player_worker():
 
 
 def parse_lyrics(raw):
+    if not isinstance(raw, str) or len(raw) > 1_000_000:
+        return []
     entries = []
     offset_match = re.search(r"\[offset:([+-]?\d+)\]", raw, re.I)
-    offset = int(offset_match.group(1)) / 1000 if offset_match else 0.0
+    try:
+        offset = int(offset_match.group(1)) / 1000 if offset_match else 0.0
+        if not math.isfinite(offset):
+            return []
+    except (ValueError, OverflowError):
+        return []
     pattern = r"\[(\d+):(\d+(?:\.\d+)?)\]"
     for row in raw.splitlines():
         if not re.match(pattern, row):
             continue
-        tags = list(re.finditer(pattern, row))
+        prefix = re.match('(?:'+pattern+')+', row)[0]
+        tags = list(re.finditer(pattern, prefix))
         text = row[tags[-1].end():].strip()
         # Remove controles de terminal vindos da fonte da letra.
         text = "".join(c for c in text if c.isprintable())
         for tag in tags:
-            stamp = int(tag[1]) * 60 + float(tag[2]) + offset
-            entries.append((stamp, text))
+            try:
+                stamp = int(tag[1]) * 60 + float(tag[2]) + offset
+                if math.isfinite(stamp) and -172800 <= stamp <= 172800:
+                    entries.append((stamp, text))
+            except (ValueError, OverflowError):
+                continue
     entries = sorted(set(entries))
     if not entries:
         return []
@@ -152,55 +164,64 @@ def lyrics_worker():
         RESULTS.put((song, lines))
 
 
+def typing_count(line, position, ahead=TYPE_AHEAD, typing_mode='smooth'):
+    text = line['text']
+    # Exact source timings always take priority over a synthetic word rhythm.
+    reveals = line.get('reveals')
+    if reveals and len(reveals) == len(text):
+        count = bisect.bisect_right(reveals, position + ahead)
+        return min(len(text), max(1, count))
+    elapsed = max(0.0, position - line['start'] + ahead)
+    progress = min(1.0, elapsed / line['duration'])
+    if typing_mode != 'words-beta':
+        return min(len(text), max(1, bisect.bisect_right(line['weights'], progress * line['weights'][-1])))
+    if '_word_slots' not in line:
+        words = list(re.finditer(r'\S+', text))
+        total = line['weights'][-1]
+        slots = []
+        for index, word in enumerate(words):
+            start_weight = line['weights'][word.start()-1] if word.start() else 0
+            next_start = words[index+1].start() if index+1 < len(words) else None
+            end_weight = line['weights'][next_start-1] if next_start is not None else total
+            onset = start_weight / total * line['duration']
+            slot = max(.001, (end_weight-start_weight) / total * line['duration'])
+            typing = max(.001, slot - min(.08, slot * .25))
+            slots.append((onset, typing, word.start(), word.end()))
+        line['_word_slots'] = slots
+        line['_word_onsets'] = [slot[0] for slot in slots]
+    index = bisect.bisect_right(line['_word_onsets'], elapsed)-1
+    if index < 0:
+        return 0
+    onset, typing, start, end = line['_word_slots'][index]
+    fraction = min(1.0, (elapsed-onset)/typing)
+    return start + min(end-start, 1+int((end-start-1)*fraction))
+
+
 def render_block(lines, position, ahead=TYPE_AHEAD, block_size=LINES_PER_BLOCK,
-                 pause_seconds=PAUSE_SECONDS, complete=False, typing_mode='smooth'):
-    current = bisect.bisect_right([line["start"] for line in lines], position) - 1
+                 pause_seconds=PAUSE_SECONDS, complete=False, typing_mode='smooth', current_index=None):
+    current = (bisect.bisect_right([line['start'] for line in lines], position)-1
+               if current_index is None else current_index)
     if current < 0:
-        return "..."
+        return '...'
     first = (current // block_size) * block_size
     rows = []
-    for i in range(first, current + 1):
+    for i in range(first, current+1):
         line = lines[i]
         if i > first:
-            previous = lines[i - 1]
-            silence_start = previous["blank"] if previous["blank"] is not None else previous["end"]
-            if line["start"] - silence_start >= pause_seconds:
-                rows.append("")
-        if i < current:
-            rows.append(line["text"])
-            continue
-        elapsed = max(0.0, position - line["start"] + ahead)
-        progress = min(1.0, elapsed / line["duration"])
-        count = bisect.bisect_right(line["weights"], progress * line["weights"][-1])
-        count = min(len(line["text"]), max(1, count))
-        if typing_mode == 'words-beta':
-            # Fit typing and short holds into the existing line clock. No sleeps.
-            words = list(re.finditer(r'\S+', line['text']))
-            total = line['weights'][-1]
-            count = 0
-            for index, word in enumerate(words):
-                start_weight = line['weights'][word.start()-1] if word.start() else 0
-                next_start = words[index+1].start() if index+1 < len(words) else None
-                end_weight = line['weights'][next_start-1] if next_start is not None else total
-                onset = start_weight / total * line['duration']
-                slot = max(.001, (end_weight-start_weight) / total * line['duration'])
-                local = elapsed - onset
-                if local < 0:
-                    break
-                # Up to 80 ms between words, shortened for fast lyrics.
-                hold = min(.08, slot * .25)
-                typing = max(.001, slot - hold)
-                fraction = min(1.0, local / typing)
-                length = word.end() - word.start()
-                count = word.start() + min(length, 1 + int((length-1) * fraction))
-                if fraction < 1:
-                    break
-        cursor = "█" if progress < 1.0 else ""
-        rows.append(line["text"] if complete else line["text"][:count] + cursor)
-        silence_start = line["blank"] if line["blank"] is not None else line["end"]
-        if position - silence_start >= pause_seconds:
-            rows.append("")
-    return "\n".join(rows)
+            previous = lines[i-1]
+            silence_start = previous['blank'] if previous['blank'] is not None else previous['end']
+            if line['start']-silence_start >= pause_seconds:
+                rows.append('')
+        if i < current or complete:
+            rows.append(line['text'])
+        else:
+            count = typing_count(line, position, ahead, typing_mode)
+            rows.append(line['text'][:count]+('█' if count < len(line['text']) else ''))
+        if i == current:
+            silence_start = line['blank'] if line['blank'] is not None else line['end']
+            if position-silence_start >= pause_seconds:
+                rows.append('')
+    return '\n'.join(rows)
 
 
 def main():
@@ -277,3 +298,4 @@ if __name__ == "__main__":
         args.remove("--legacy")
         args = ["--source", "native"] + args
     raise SystemExit(cli_main(args))
+

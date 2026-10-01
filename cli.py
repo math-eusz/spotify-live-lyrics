@@ -9,9 +9,9 @@ import shutil
 import subprocess
 import sys
 from terminal_ui import CONFIG_PATH, Settings
-from preferences import ensure, parser_for, set_value, set_theme, THEMES, set_preset, PRESETS, restore, reset
+from preferences import ensure, parser_for, set_value, set_theme, THEMES, set_preset, PRESETS, restore, reset, PERFORMANCE, set_performance
 
-VERSION='0.8.0'
+VERSION='0.8.1'
 
 
 def main(argv=None):
@@ -22,6 +22,8 @@ def main(argv=None):
     sub=parser.add_subparsers(dest='command')
     play=sub.add_parser('play',help='abrir o player (padrão)')
     play.add_argument('--source',choices=('native','auto','spicy'),default=argparse.SUPPRESS)
+    performance=sub.add_parser('performance',help='perfil de desempenho, sem alterar o visual')
+    performance.add_argument('name',choices=tuple(PERFORMANCE))
     sub.add_parser('demo',help='prévia interativa sem Spotify')
     select=sub.add_parser('source',help='salvar a fonte preferida')
     select.add_argument('mode',choices=('native','auto','spicy'))
@@ -111,6 +113,10 @@ def main(argv=None):
                 for section in p.sections():
                     for key,value in p[section].items():
                         print(f'{section}.{key} = {value}')
+            return 0
+        if args.command=='performance':
+            set_performance(args.config,args.name)
+            print('Desempenho: '+args.name+' · salvo')
             return 0
         if args.command=='preset':
             if args.name=='list':

@@ -1,4 +1,4 @@
-"""Unified native/automatic/Spicy player for sylrics 0.8.0."""
+"""Unified native/automatic/Spicy player for sylrics 0.8.1."""
 import os
 import select
 import shutil
@@ -63,7 +63,11 @@ class Keyboard:
 def run(path,source=None,demo=False):
     from pathlib import Path
     from lrc_store import LrcStore
-    LrcStore().maintain(import_from=Path.home())
+    cache_warning=''
+    try:
+        LrcStore().maintain(import_from=Path.home())
+    except OSError:
+        cache_warning='Cache indisponível · letras continuam disponíveis pela internet'
     if not sys.stdout.isatty() and not demo:
         print('Abra um terminal interativo ou use sylrics doctor.')
         return 1
@@ -84,8 +88,8 @@ def run(path,source=None,demo=False):
     clock=Clock()
     visual=Visualizer()
     covers=Covers()
-    notice=''
-    notice_until=0
+    notice=cache_warning
+    notice_until=time.monotonic()+6 if cache_warning else 0
     session={}
     signature=settings.signature
     help_open=False
@@ -122,10 +126,6 @@ def run(path,source=None,demo=False):
                     elif mode=='native' and bridge:
                         bridge.close()
                         bridge=None
-                visual_config=dict(settings.values['visualizer'])
-                if settings.values['layout']['view']=='lyrics':
-                    visual_config['mode']='off'
-                visual.configure(visual_config)
                 keyboard.capture_mouse(settings.flag('click_seek') and not demo)
                 events=keyboard.read()
                 keys=''.join(value for kind,value in events if kind=='key')
@@ -202,7 +202,7 @@ def run(path,source=None,demo=False):
                     for (section,option),value in session.items():
                         settings.values[section][option]=value
                 if demo:
-                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.8.0',duration=30,
+                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.8.1',duration=30,
                               position=(tick-started)%30,measured_at=tick,playing=True)
                     lines,label=demo_lines,'Demonstração'
                 else:
@@ -211,6 +211,10 @@ def run(path,source=None,demo=False):
                     if data and not lines:
                         lines,provider=loader.get(data)
                         label='Nativo · '+provider
+                visual_config=dict(settings.values['visualizer'])
+                if settings.values['layout']['view']=='lyrics' or not data:
+                    visual_config['mode']='off'
+                visual.configure(visual_config)
                 if data:
                     position=clock.position(data,tick)+float(playback['sync_offset'])
                     if lines:
@@ -231,10 +235,11 @@ def run(path,source=None,demo=False):
                     displayed_rows=[]
                     message='Abra um player compatível e toque uma música.' if mode!='spicy' else (
                         bridge.error or 'Abra a letra no Spicy Lyrics para conectar.')
-                    ui.draw('','sylrics · 0.8.0',message,playing=False,
+                    ui.draw('','sylrics · 0.8.1',message,playing=False,
                             notice='sylrics doctor · Diagnóstico',source=mode,help_open=help_open)
                 displayed_size=ui.last_size
-                time.sleep(max(0,1/int(playback['fps'])-(time.monotonic()-tick)))
+                fps=int(playback['fps'] if data and data['playing'] else playback['idle_fps'])
+                time.sleep(max(0,1/fps-(time.monotonic()-tick)))
     except KeyboardInterrupt:
         pass
     finally:

@@ -35,13 +35,13 @@ Em outras distribuições, use o gerenciador de pacotes correspondente. Estes co
 Se o sylrics estiver aberto, encerre com `q` ou `Ctrl+C`. Depois:
 
 ```sh
-curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.0/sylrics-0.8.0.tar.gz
-tar -xzf sylrics-0.8.0.tar.gz
-cd sylrics-0.8.0
+curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.1/sylrics-0.8.1.tar.gz
+tar -xzf sylrics-0.8.1.tar.gz
+cd sylrics-0.8.1
 sh install.sh
 ```
 
-O instalador salva o programa em `~/.local/share/spotify-live-lyrics/` e cria os comandos em `~/.local/bin/`. Ele preserva as preferências existentes e faz backup dos arquivos substituídos na pasta `backup/` do programa. Não precisa ser executado com `sudo` e não altera o Spicetify.
+O instalador salva o programa em `~/.local/share/spotify-live-lyrics/` e cria os comandos em `~/.local/bin/`. O pacote e a configuração são verificados antes de substituir o código. Ele preserva as preferências existentes e faz backup dos arquivos substituídos na pasta `backup/` do programa. Não precisa ser executado com `sudo` e não altera o Spicetify.
 
 Abra um **novo terminal**, coloque uma música no Spotify ou spotify_player e rode:
 
@@ -100,6 +100,12 @@ Para letras maiores em uma nova janela Kitty:
 ```sh
 sylrics font 18
 ```
+
+## ⚡ Escolher o desempenho
+
+Use `sylrics performance balanced` para equilibrar fluidez e consumo. `sylrics performance smooth` prioriza fluidez; `sylrics performance eco` reduz a frequência de atualização. Cores, layout e sincronização são preservados.
+
+O programa reduz a atividade quando pausado ou sem player. Falhas temporárias de capa são tentadas novamente após 30 segundos; o cache de imagens continua limitado a oito entradas. Um cache de letras sem permissão não impede a busca pela internet.
 
 ## 🧪 Experimentar os recursos beta
 

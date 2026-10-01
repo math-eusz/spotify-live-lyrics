@@ -15,12 +15,20 @@ def install(root=None):
     home=Path.home()
     target=home/'.local/share/spotify-live-lyrics'
     timestamp=datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')
-    backup=target/'backup'/('before-0.8.0-'+timestamp)
+    backup=target/'backup'/('before-0.8.1-'+timestamp)
     # Validate all files before touching the installed version.
     payload={name:(root/name).read_bytes() for name in RUNTIME}
     for name,content in payload.items():
         if name.endswith('.py'):
             compile(content,name,'exec')
+    completion_source=(root/'completions/sylrics.fish').read_bytes()
+    # Abort before replacing any installed code if user configuration is invalid.
+    sys.path.insert(0,str(root))
+    from terminal_ui import Settings, CONFIG_PATH
+    check=Settings(CONFIG_PATH)
+    check.reload()
+    if check.error:
+        raise ValueError(check.error+'; corrija o arquivo antes de atualizar.')
     backup.mkdir(parents=True)
     for name,content in payload.items():
         dest=target/name
@@ -54,8 +62,8 @@ def install(root=None):
     completion.parent.mkdir(parents=True,exist_ok=True)
     if completion.exists():
         shutil.copy2(completion,backup/'sylrics-completion.fish')
-    shutil.copy2(root/'completions/sylrics.fish',completion)
-    print('sylrics 0.8.0 instalado. Backup: '+str(backup))
+    completion.write_bytes(completion_source)
+    print('sylrics 0.8.1 instalado. Backup: '+str(backup))
     print('Configuração: '+str(config))
     print('Abra um novo terminal e execute: sylrics')
     if str(binaries) not in os.environ.get('PATH','').split(os.pathsep):

@@ -58,7 +58,10 @@ class LrcStore:
                 source = Path(import_from)
                 for path in source.glob('*.lrc'):
                     # Only top-level, regular synchronized lyric files, never symlinks.
-                    info = path.lstat()
+                    try:
+                        info = path.lstat()
+                    except FileNotFoundError:
+                        continue
                     if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_BYTES:
                         continue
                     try:
@@ -119,3 +122,4 @@ class LrcStore:
             for path in files:
                 path.unlink(missing_ok=True)
             return len(files)
+

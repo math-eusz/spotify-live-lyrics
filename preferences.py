@@ -29,7 +29,7 @@ def write(parser,path,backup=True):
     path=Path(path)
     path.parent.mkdir(parents=True,exist_ok=True)
     out=io.StringIO()
-    out.write('; sylrics 0.7.2 — salve para aplicar ao vivo. Ajuda: sylrics config list\n')
+    out.write('; sylrics 0.8.1 — salve para aplicar ao vivo. Ajuda: sylrics config list\n')
     parser.write(out)
     fd,name=tempfile.mkstemp(prefix='.ui-',suffix='.ini',dir=path.parent)
     temp=Path(name)
@@ -105,6 +105,20 @@ def set_preset(path, name):
         raise ValueError('Perfil desconhecido: '+name)
     parser = parser_for(path)
     for section, options in PRESETS[name].items():
+        parser[section].update(options)
+    write(parser, path)
+
+
+PERFORMANCE = {
+    'smooth': {'playback': {'fps':'180','idle_fps':'15'}, 'visualizer': {'fps':'90'}},
+    'balanced': {'playback': {'fps':'120','idle_fps':'15'}, 'visualizer': {'fps':'60'}},
+    'eco': {'playback': {'fps':'60','idle_fps':'10'}, 'visualizer': {'fps':'30'}},
+}
+
+
+def set_performance(path, name):
+    parser = parser_for(path)
+    for section, options in PERFORMANCE[name].items():
         parser[section].update(options)
     write(parser, path)
 

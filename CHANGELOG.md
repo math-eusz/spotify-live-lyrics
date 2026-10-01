@@ -4,6 +4,12 @@
 
 Este histórico resume a evolução do sylrics em português. As primeiras versões foram numeradas retrospectivamente a partir das entregas completas do projeto. Cada versão publicada mantém seu código e seus arquivos originais.
 
+## ⚡ 0.8.1 — Revisão de desempenho e sincronização
+
+Corrigido o fluxo de renderização que recebia tempos por sílaba, mas ainda estimava a digitação por linha. As pausas internas passam a respeitar os tempos reais. Consulta normal do player reduzida de três processos para um; cache de cálculos de digitação, alinhamento e chave de letra.
+
+Perfis `performance balanced/smooth/eco`, atualização independente do visualizador e atividade reduzida ao pausar. Recuperação de falhas temporárias de capa, cache sem permissão, metadados sem artista e timestamps inválidos. Verificações de pacote/configuração antes da instalação. **85 testes passaram** e foi incluído um benchmark reproduzível; sem garantia de percentual de economia no desktop.
+
 ## 🖼️ 0.8.0 — Capa e leitura limpa
 
 Cartão de reprodução com capa, artista, álbum e progresso. Modo somente letras (`view lyrics` e tecla L), capas opcionais (`cover on/off`) e seleção automática de Spotify/spotify_player (`player auto`). As imagens são carregadas em segundo plano e limitadas a oito em memória. O modo somente letras suspende a captura do visualizador.

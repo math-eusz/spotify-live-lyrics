@@ -6,7 +6,7 @@
 
 Letras sincronizadas, visualizador de áudio e uma interface que você pode deixar do seu jeito.
 
-**🐧 Linux · 🐍 Python 3.10+ · 📦 v0.8.0 · 📜 MIT**
+**🐧 Linux · 🐍 Python 3.10+ · 📦 v0.8.1 · 📜 MIT**
 
 [🚀 Instalar](#-instalação) · [🎛️ Comandos](COMMANDS.pt-BR.md) · [📖 Primeiros passos](QUICKSTART.pt-BR.md) · [📦 Versões](https://github.com/math-eusz/spotify-live-lyrics/releases)
 
@@ -50,9 +50,9 @@ sudo pacman -S --needed cava python-pillow
 Baixe e instale a versão atual:
 
 ```sh
-curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.0/sylrics-0.8.0.tar.gz
-tar -xzf sylrics-0.8.0.tar.gz
-cd sylrics-0.8.0
+curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.1/sylrics-0.8.1.tar.gz
+tar -xzf sylrics-0.8.1.tar.gz
+cd sylrics-0.8.1
 sh install.sh
 ```
 
@@ -114,6 +114,20 @@ sylrics font 18
 ```
 
 O tema dinâmico acompanha o papel de parede **quando seu sistema atualiza a paleta do terminal**. Transparência e desfoque são configurados no terminal e no ambiente gráfico.
+
+## ⚡ Desempenho sem perder personalização
+
+```sh
+sylrics performance balanced  # Letras até 120 FPS, visualizador até 60
+sylrics performance smooth    # Letras até 180 FPS, visualizador até 90
+sylrics performance eco       # Letras até 60 FPS, visualizador até 30
+```
+
+Os perfis alteram apenas limites de atualização. Ao pausar ou ficar sem player, o programa reduz a frequência automaticamente. Você também pode ajustar `playback.idle_fps` (5–60) e `visualizer.fps` (15–120). Uma atualização não aplica nenhum perfil automaticamente; preserva os seus ajustes.
+
+A consulta normal de metadados, posição e estado passou de três processos playerctl para um por ciclo, mantendo a interpolação local. Quando existem tempos por sílaba, a exibição agora respeita esses tempos e as pausas internas; o modo beta não substitui os tempos reais por estimativas.
+
+O benchmark sintético de 900 quadros (120×36 células, words-beta e visualizador decorativo) mediu aproximadamente metade do tempo de CPU da 0.8.0 no ambiente de teste. Isso não mede o consumo total no desktop. Para reproduzir: `python benchmarks/render.py`; detalhes em [benchmarks/README.md](benchmarks/README.md).
 
 ## 🧪 Recursos beta
 
@@ -188,7 +202,7 @@ sylrics config restore
 
 ## 📦 Histórico e colaboração
 
-A versão **0.8.0** traz capa do álbum, cartão de reprodução, modo somente letras e detecção automática do spotify_player. Os controles de palavras, as preferências e os backups continuam disponíveis.
+A versão **0.8.1** revisa a sincronização por sílaba, reduz consultas ao player e trabalho repetido de renderização, adiciona perfis de desempenho e melhora a recuperação de capas, cache e instalação. As preferências existentes são preservadas.
 
 Veja o [histórico de alterações em português](CHANGELOG.md) ou baixe uma [versão publicada](https://github.com/math-eusz/spotify-live-lyrics/releases).
 
@@ -200,7 +214,7 @@ Para verificar o código em uma cópia do repositório:
 python -m unittest discover -s tests -v
 ```
 
-A v0.8.0 passou por **75 testes automatizados**, incluindo instalação e interação em terminal com player simulado. Os tempos fornecidos pelas letras e o comportamento do Spotify precisam ser avaliados na reprodução real. Os 180 FPS são uma meta de atualização, não uma garantia de desempenho.
+A v0.8.1 passou por **85 testes automatizados**, incluindo instalação e interação em terminal com player simulado. Os tempos fornecidos pelas letras e o comportamento do Spotify precisam ser avaliados na reprodução real. Os 180 FPS são uma meta de atualização, não uma garantia de desempenho.
 
 ## 📜 Licença e créditos
 

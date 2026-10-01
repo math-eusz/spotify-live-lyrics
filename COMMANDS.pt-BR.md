@@ -1,4 +1,4 @@
-# 🎛️ Comandos do sylrics · v0.8.0
+# 🎛️ Comandos do sylrics · v0.8.1
 
 [← Página inicial](README.md) · [🚀 Instalação](QUICKSTART.pt-BR.md)
 
@@ -11,6 +11,9 @@ As alterações de preferências ficam salvas. Os atalhos dentro do programa sã
 | `sylrics cover on` / `sylrics cover off` | Mostrar ou ocultar a capa do álbum; imagens requerem Kitty e Pillow. |
 | `sylrics player auto` | Detectar Spotify ou spotify_player em reprodução. |
 | `sylrics player spotify_player` | Fixar o cliente de terminal. Também aceita outro nome MPRIS. |
+| `sylrics performance balanced` | Letras até 120 FPS, visualizador até 60; pausado até 15. |
+| `sylrics performance smooth` | Letras até 180 FPS, visualizador até 90; pausado até 15. |
+| `sylrics performance eco` | Letras até 60 FPS, visualizador até 30; pausado até 10. |
 | `sylrics demo` | Prévia sem Spotify. |
 | `sylrics --help` / `--version` | Ajuda ou versão instalada. |
 | `sylrics doctor` | Verificar dependências e configuração. |
@@ -51,6 +54,8 @@ Exemplo: `sylrics config set visualizer.bar_spacing 2`.
 
 | Chave | Valores / finalidade |
 |---|---|
+| `visualizer.fps` | 15–120: limite independente de atualização; padrão 60. |
+| `playback.idle_fps` | 5–60: limite quando pausado ou sem player; padrão 15. |
 | `visualizer.bar_spacing` | 0–5 colunas entre bandas; padrão 1. |
 | `visualizer.bar_width` | 1–4 colunas por banda; padrão 1. |
 | `visualizer.width_percent` | 0–100% da área útil; padrão 85; 0 usa largura fixa. |
@@ -147,3 +152,5 @@ EDITOR=code sylrics config edit
 Os nomes dos comandos e valores (`true`, `false`, `rolling` etc.) permanecem como usados pelo programa. `true` ativa e `false` desativa. Execute `sylrics config list` para ver os valores atuais.
 
 **L** alterna entre interface completa e somente letras durante a reprodução (temporário). No modo somente letras, o visualizador e as capas ficam suspensos; as preferências são preservadas.
+
+Os perfis de desempenho preservam aparência, fonte de letras e sincronização. Os limites de FPS são metas, dependentes do terminal e da máquina. Tempos reais por sílaba têm prioridade também no modo `words-beta`.

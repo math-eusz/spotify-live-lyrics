@@ -33,7 +33,9 @@ class Timing(unittest.TestCase):
         self.assertEqual(lines[0]['text'], 'hello world')
         self.assertEqual(bridge.render(lines, 29.99), '♪ Instrumental...')
         self.assertEqual(bridge.render(lines, 31), bridge.legacy.render_block(lines, 31))
-        self.assertNotEqual(bridge.render(lines, 31), bridge.render(lines, 31.4))
+        # Hold the completed word during the real 1.5-second vocal gap.
+        self.assertEqual(bridge.render(lines, 31), bridge.render(lines, 31.4))
+        self.assertNotIn('w', bridge.render(lines, 31.4))
         self.assertEqual(bridge.render(lines, 32.5), 'hello world')
 
     def test_fourth_holds_until_fifth_not_preview_time(self):
@@ -164,3 +166,4 @@ setTimeout(()=>process.exit(global.__slyricsStop ? 0:1),400);
 
 if __name__ == '__main__':
     unittest.main()
+

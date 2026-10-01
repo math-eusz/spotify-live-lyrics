@@ -65,8 +65,13 @@ class Pages:
         block = lines[first:end]
         kwargs = dict(ahead=ahead, typing_mode=typing_mode, block_size=max(1, len(block)),
                       pause_seconds=float(settings['pause_seconds']))
+        kwargs['current_index'] = current-first
         body = render_block(block, position, **kwargs)
-        anchor = render_block(block, position, complete=True, **kwargs)
+        anchor_key = (key, first, current, body.endswith('\n'))
+        if anchor_key != getattr(self, 'anchor_key', None):
+            self.anchor = render_block(block, position, complete=True, **kwargs)
+            self.anchor_key = anchor_key
+        anchor = self.anchor
         vocal_end = lines[current].get('blank')
         if vocal_end is None:
             vocal_end = lines[current]['end']

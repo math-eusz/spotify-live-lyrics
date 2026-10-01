@@ -20,6 +20,7 @@ class Visualizer:
         self.lock = threading.Lock()
         self.smoothed = []
         self.last_frame = None
+        self.render_key = None
 
     def configure(self, settings):
         key = (settings['mode'], settings['width'], settings['input'], settings['sensitivity'])
@@ -82,6 +83,16 @@ class Visualizer:
 
     def frame(self, settings, playing, gap, now=None):
         now = time.monotonic() if now is None else now
+        key = (tuple(settings.items()), playing, gap)
+        if (key == self.render_key and 0 <= now-self.render_at + 1e-9 <
+                1 / int(settings.get('fps', '60'))):
+            return self.render_rows
+        self.render_rows = self._frame(settings, playing, gap, now)
+        self.render_key, self.render_at = key, now
+        return self.render_rows
+
+    def _frame(self, settings, playing, gap, now=None):
+        now = time.monotonic() if now is None else now
         mode = settings['mode']
         if mode == 'off':
             self.smoothed, self.last_frame = [], None
@@ -122,6 +133,7 @@ class Visualizer:
         return tuple(([label] if show_label else []) + rows)
 
     def close(self):
+        self.render_key = None
         if self.proc:
             if self.proc.poll() is None:
                 self.proc.terminate()

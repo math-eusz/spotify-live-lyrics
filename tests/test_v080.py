@@ -43,7 +43,9 @@ class Version080(unittest.TestCase):
         def command(args):
             calls.append(args)
             if args[-1]=='{{mpris:trackid}}':return 'track:a'
-            if 'metadata' in args:return 'Artist\tSong\t60000000\ttrack:a\tAlbum\thttps://example.test/a.jpg'
+            if 'metadata' in args:
+                player.stop.set()
+                return 'Artist\tSong\t60000000\ttrack:a\tAlbum\thttps://example.test/a.jpg\tPlaying\t4000000'
             if 'status' in args:return 'Playing'
             if args[-1]=='position':player.stop.set();return '4'
             return ''

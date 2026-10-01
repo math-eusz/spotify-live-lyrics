@@ -6,6 +6,8 @@ from pathlib import Path
 import queue
 import secrets
 import threading
+import time
+import stat
 import urllib.parse
 import urllib.request
 
@@ -21,10 +23,13 @@ def load_cover(url):
     from PIL import Image, ImageOps
     parsed = urllib.parse.urlsplit(url)
     if parsed.scheme == 'file' and parsed.netloc in ('', 'localhost'):
-        with Path(urllib.parse.unquote(parsed.path)).open('rb') as stream:
+        path = Path(urllib.parse.unquote(parsed.path))
+        if not stat.S_ISREG(path.stat().st_mode) or path.stat().st_size > MAX_BYTES:
+            return None
+        with path.open('rb') as stream:
             raw = stream.read(MAX_BYTES + 1)
     elif parsed.scheme == 'https':
-        request = urllib.request.Request(url, headers={'User-Agent': 'sylrics/0.8.0'})
+        request = urllib.request.Request(url, headers={'User-Agent': 'sylrics/0.8.1'})
         with urllib.request.urlopen(request, timeout=4) as stream:
             if urllib.parse.urlsplit(stream.geturl()).scheme != 'https':
                 return None
@@ -48,10 +53,10 @@ class Covers:
         self.requests = queue.Queue(maxsize=1)
         self.results = queue.Queue()
         self.cache = {}
+        self.cache_times = {}
         self.requested = set()
         self.stop = threading.Event()
-        self.thread = threading.Thread(target=self.work, daemon=True)
-        self.thread.start()
+        self.thread = None
 
     def work(self):
         while not self.stop.is_set():
@@ -74,12 +79,25 @@ class Covers:
                 break
             self.requested.discard(key)
             self.cache[key] = png
+            self.cache_times[key] = time.monotonic()
             while len(self.cache) > 8:
-                self.cache.pop(next(iter(self.cache)))
+                oldest = next(iter(self.cache))
+                self.cache.pop(oldest)
+                self.cache_times.pop(oldest, None)
         if not url:
             return None
         if url in self.cache:
-            return self.cache[url]
+            if self.cache[url] is not None or time.monotonic()-self.cache_times[url] < 30:
+                png = self.cache.pop(url)
+                self.cache[url] = png
+                return png
+            self.cache.pop(url)
+            self.cache_times.pop(url, None)
+        if self.stop.is_set():
+            return None
+        if self.thread is None:
+            self.thread = threading.Thread(target=self.work, daemon=True)
+            self.thread.start()
         if url not in self.requested:
             try:
                 old = self.requests.get_nowait()

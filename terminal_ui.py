@@ -15,11 +15,11 @@ DEFAULTS = {
                'line_spacing': '1', 'lyrics_width': '86', 'border': 'true',
                'show_progress': 'true', 'show_source': 'false',
                'history_dim': 'true', 'active_bold': 'true', 'click_seek': 'true', 'font_family': 'monospace', 'word_highlight': 'off', 'font_size': '14', 'show_hints': 'false', 'show_footer': 'true', 'cursor': '▎', 'icons': 'true'},
-    'playback': {'source': 'native', 'player': 'auto', 'fps': '180',
+    'playback': {'source': 'native', 'player': 'auto', 'fps': '180', 'idle_fps': '15',
                  'sync_offset': '0', 'type_ahead': '0.10', 'typing_mode': 'smooth'},
     'pages': {'mode': 'dynamic', 'min_lines': '2', 'max_lines': '6',
               'target_seconds': '12', 'pause_seconds': '2', 'gap_animation': 'false'},
-    'visualizer': {'mode': 'auto', 'style': 'bars', 'width': '32', 'width_percent': '85', 'bottom_margin': '1', 'height': '3',
+    'visualizer': {'fps': '60', 'mode': 'auto', 'style': 'bars', 'width': '32', 'width_percent': '85', 'bottom_margin': '1', 'height': '3',
                    'bar_spacing': '1', 'bar_width': '1', 'smoothing_ms': '120', 'show_label': 'false', 'only_gaps': 'false', 'input': 'auto', 'sensitivity': '100'},
     'theme': {'mode': 'static'},
     'colors': {'text': '#DEDAD0', 'muted': '#88867F', 'accent': '#C8BA91',
@@ -117,6 +117,7 @@ class Settings:
             for section, name, low, high in (
                 ('visualizer', 'bar_spacing', 0, 5), ('visualizer', 'bar_width', 1, 4),
                 ('layout', 'font_size', 6, 48), ('visualizer', 'smoothing_ms', 0, 500),
+                ('playback', 'idle_fps', 5, 60), ('visualizer', 'fps', 15, 120),
                 ('playback', 'fps', 15, 240), ('pages', 'min_lines', 1, 16),
                 ('pages', 'max_lines', 1, 16), ('visualizer', 'width', 8, 100),
                 ('visualizer', 'width_percent', 0, 100), ('visualizer', 'bottom_margin', 0, 8),
@@ -186,6 +187,9 @@ class TerminalUI:
     def compose(self, artist, title, body, position=0, duration=0,
                 playing=True, source='', anchor=None, size=None, visual=None, notice='', gap=False, help_open=False, album='', player=''):
         self.settings.reload()
+        body = '\n'.join(safe(row) for row in str(body).split('\n'))
+        if anchor is not None:
+            anchor = '\n'.join(safe(row) for row in str(anchor).split('\n'))
         width, height = size or shutil.get_terminal_size((100, 28))
         # Reserve the final column: writing it can cause terminal auto-wrap.
         width = max(1, width - 1)
@@ -203,6 +207,7 @@ class TerminalUI:
         if lyrics_only:
             visual = None
         if help_open:
+            visual = None
             layout.update(line_spacing='0', vertical='center', alignment='left')
         border = not lyrics_only and self.settings.flag('border') and width >= 20 and height >= 7
         edge = int(border)
@@ -336,7 +341,9 @@ class TerminalUI:
                 remaining -= len(segment)
             if i + 1 < len(visible_rows):
                 prepared.extend([('', 0, False, None, None, 0, 0)] * int(layout['line_spacing']))
-        if len(prepared) > room:
+        if len(prepared) > room and help_open:
+            prepared = prepared[:room]
+        elif len(prepared) > room:
             visible_end = max((i + 1 for i, row in enumerate(prepared) if row[0]), default=1)
             window_start = max(0, visible_end - room)
             prepared = prepared[window_start:window_start + room]

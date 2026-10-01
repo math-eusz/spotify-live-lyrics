@@ -2,11 +2,8 @@
 import hashlib
 import json
 import math
-import os
-from pathlib import Path
 import queue
 import shutil
-import subprocess
 import threading
 import time
 import urllib.parse
@@ -29,10 +26,29 @@ def resolve_player(preference='auto', current=None):
     else:
         candidates = [name for name in names if name == preference or
                       name.startswith(preference + '.')]
+    if len(candidates) < 2:
+        return next(iter(candidates), None)
     playing = [name for name in candidates if
                command(['playerctl', '-p', name, 'status']) == 'Playing']
     choices = playing or candidates
     return current if current in choices else next(iter(choices), None)
+
+
+def parse_player_snapshot(raw, player, measured_at, seek_serial=0):
+    fields = raw.split('\t')
+    try:
+        if len(fields) != 8 or not fields[1] or fields[6] not in ('Playing', 'Paused', 'Stopped'):
+            return None
+        position = float(fields[7]) / 1_000_000
+        duration = float(fields[2]) / 1_000_000 if fields[2] else 0
+        if not math.isfinite(position) or not math.isfinite(duration):
+            return None
+        return dict(artist=fields[0], title=fields[1], duration=max(0, duration),
+                    uri=fields[3] or fields[0]+' / '+fields[1], position=max(0, position),
+                    album=fields[4], art_url=fields[5], player=player,
+                    seek_serial=seek_serial, playing=fields[6]=='Playing', measured_at=measured_at)
+    except (ValueError, OverflowError):
+        return None
 
 
 class Player:
@@ -74,26 +90,13 @@ class Player:
                         self.seek_serial += 1
                 elif action['player'] == selected:
                     command(['playerctl', '-p', selected, action['command']])
-            raw = command(['playerctl', '-p', selected, 'metadata', '--format',
-                           '{{artist}}\t{{title}}\t{{mpris:length}}\t{{mpris:trackid}}\t{{album}}\t{{mpris:artUrl}}'])
-            fields = raw.split('\t')
-            status = command(['playerctl', '-p', selected, 'status'])
+            # One process supplies a coherent metadata/status/position snapshot.
+            # playerctl's template position is in microseconds, unlike `position`.
             before = time.monotonic()
-            position = command(['playerctl', '-p', selected, 'position'])
+            raw = command(['playerctl', '-p', selected, 'metadata', '--format',
+                           '{{artist}}\t{{title}}\t{{mpris:length}}\t{{mpris:trackid}}\t{{album}}\t{{mpris:artUrl}}\t{{status}}\t{{position}}'])
             after = time.monotonic()
-            data = None
-            try:
-                position = float(position)
-                duration = float(fields[2]) / 1_000_000 if len(fields) > 2 and fields[2] else 0
-                if len(fields) < 2 or not fields[1] or not math.isfinite(position) or not math.isfinite(duration):
-                    raise ValueError
-                data = dict(artist=fields[0], title=fields[1], duration=max(0, duration),
-                            uri=fields[3] if len(fields)>3 else raw, position=max(0, position),
-                            album=fields[4] if len(fields)>4 else '',
-                            art_url=fields[5] if len(fields)>5 else '', player=selected,
-                            seek_serial=self.seek_serial, playing=status == 'Playing', measured_at=(before+after)/2)
-            except (ValueError, IndexError):
-                pass
+            data = parse_player_snapshot(raw, selected, (before+after)/2, self.seek_serial)
             with self.lock:
                 self.data = data
             self.stop.wait(max(0, .1 - (time.monotonic() - started)))
@@ -165,7 +168,7 @@ def fetch_lrc(data):
     if data.get('duration', 0) > 0:
         params['duration'] = round(data['duration'])
     request = urllib.request.Request('https://lrclib.net/api/get?' + urllib.parse.urlencode(params),
-                    headers={'User-Agent': 'sylrics/0.8.0 (https://github.com/math-eusz/spotify-live-lyrics)'})
+                    headers={'User-Agent': 'sylrics/0.8.1 (https://github.com/math-eusz/spotify-live-lyrics)'})
     with urllib.request.urlopen(request, timeout=8) as response:
         payload = json.loads(response.read(1_000_001))
     if not isinstance(payload, dict):
@@ -180,17 +183,25 @@ class Lyrics:
     def __init__(self, cache_dir=None):
         self.store = LrcStore(cache_dir)
         self.cache_dir = self.store.directory
-        self.store.maintain()
+        try:
+            self.store.maintain()
+        except OSError:
+            pass  # A read-only cache must not disable online lyrics.
         self.requests = queue.Queue(maxsize=1)
         self.results = queue.Queue()
         self.pending = set()
         self.cache = {}
+        self.key_identity = self.key_value = None
         self.stop = threading.Event()
         self.thread = threading.Thread(target=self.work, daemon=True)
         self.thread.start()
 
     def key(self, data):
-        return hashlib.sha256(json.dumps([data['uri'], data['artist'], data['title'], round(data.get('duration',0))], ensure_ascii=False).encode()).hexdigest()
+        identity = (data['uri'], data['artist'], data['title'], round(data.get('duration',0)))
+        if identity != self.key_identity:
+            self.key_identity = identity
+            self.key_value = hashlib.sha256(json.dumps(identity, ensure_ascii=False).encode()).hexdigest()
+        return self.key_value
 
     def work(self):
         while not self.stop.is_set():
@@ -201,14 +212,18 @@ class Lyrics:
             raw, label = '', 'Letra não encontrada · visualizador disponível'
             downloaded = False
             try:
-                raw = self.store.read(key)
-                if raw and parse_lyrics(raw):
+                try:
+                    raw = self.store.read(key)
+                except OSError:
+                    raw = ''
+                lines = parse_lyrics(raw) if raw else []
+                if lines:
                     label = 'Cache'
                 else:
                     raw, label = fetch_lrc(data)
                     downloaded = True
-                lines = parse_lyrics(raw)
-            except (OSError, ValueError, TypeError, KeyError, AttributeError):
+                    lines = parse_lyrics(raw)
+            except (OSError, ValueError, TypeError, KeyError, AttributeError, OverflowError):
                 lines = []
             if lines and downloaded:
                 try:
