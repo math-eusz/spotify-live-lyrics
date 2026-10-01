@@ -194,6 +194,19 @@
       "COMMANDS.pt-BR.md"
     ],
     "source_bundle": true,
+    "latest": false
+  },
+  {
+    "tag": "v0.8.2",
+    "commit": "57996916df0415c2e969e77d91153871f77da47b",
+    "title": "v0.8.2 — Mini player e reprodução local beta",
+    "notes": "releases/notes/v0.8.2.md",
+    "assets": [
+      "ui.ini",
+      "QUICKSTART.pt-BR.md",
+      "COMMANDS.pt-BR.md"
+    ],
+    "source_bundle": true,
     "latest": true
   }
 ]
