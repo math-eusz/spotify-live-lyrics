@@ -11,7 +11,7 @@ import sys
 from terminal_ui import CONFIG_PATH, Settings
 from preferences import ensure, parser_for, set_value, set_theme, THEMES, set_preset, PRESETS, restore, reset, PERFORMANCE, set_performance
 
-VERSION='0.8.4'
+VERSION='0.8.5'
 
 
 def main(argv=None):

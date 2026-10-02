@@ -242,7 +242,7 @@ class TerminalUI:
                 put(y, 0, '│', 'border')
                 put(y, width - 1, '│', 'border')
         header_y = edge + (1 if height >= 12 else 0)
-        card_height = min(4, max(1, height-edge-header_y-5))
+        card_height = min(8 if height >= 24 else 6, max(1, height-edge-header_y-6))
         text_left = left
         if not lyrics_only and self.settings.flag('cover'):
             cover_height = min(card_height, max(1, usable // 3))
@@ -265,17 +265,17 @@ class TerminalUI:
         buttons = [(' '*button_padding)+label+(' '*button_padding) for label in labels]
         group_width = sum(cells(button) for button in buttons)+2*button_gap
         centered_x = left+max(0,(usable-group_width)//2)
-        inline = (self.settings.flag('controls') and card_height >= 3
-                  and left+usable-text_left >= group_width+16)
-        controls_x = max(centered_x,text_left+14) if inline else centered_x
-        text_width = max(0,(controls_x-2 if inline else left+usable)-text_left)
+        controls_x = centered_x
+        text_width = max(0,left+usable-text_left)
         if not lyrics_only and text_width:
             put(header_y, text_left, truncate(title or 'sylrics', text_width), 'accent')
             if card_height >= 3:
                 put(header_y+1, text_left, truncate(artist, text_width))
             if card_height >= 4:
                 put(header_y+2, text_left, truncate(album or player or source, text_width), 'muted')
-        controls_y = header_y+1 if inline else header_y+card_height
+        progress_y = header_y+card_height
+        show_progress = self.settings.flag('show_progress') and height >= 9 and usable >= 13
+        controls_y = progress_y+int(show_progress)
         if not lyrics_only and self.settings.flag('controls') and controls_y < height-edge:
             x = controls_x
             for label, action in zip(buttons, ('previous','play-pause','next')):
@@ -284,30 +284,24 @@ class TerminalUI:
                     if not help_open:
                         self.controls[col, controls_y] = action
                 x += cells(label)+button_gap
-        progress_y = header_y+card_height+(int(self.settings.flag('controls')) if not inline else 0)
-        content_top = edge if lyrics_only else min(height-edge-1, progress_y+2)
-        if not lyrics_only and self.settings.flag('show_progress') and height >= 9 and usable >= 13:
+        timing_y = controls_y+int(self.settings.flag('controls'))
+        header_end = timing_y+int(show_progress)
+        content_top = edge if lyrics_only else min(height-edge-1, header_end+1)
+        if not lyrics_only and show_progress:
             elapsed = clock(position)
             total = clock(duration) if duration > 0 else '--:--'
-            if inline:
-                timing = elapsed+' / '+total
-                put(controls_y+1,controls_x+max(0,(group_width-cells(timing))//2),crop(timing,group_width),'muted')
-                bar_x,track_width = left,usable
-            else:
-                track_width = max(1, usable-len(elapsed)-len(total)-4)
-                put(progress_y,left,elapsed,'muted')
-                bar_x = left+len(elapsed)+2
-                put(progress_y,left+usable-len(total),total,'muted')
-            put(progress_y,bar_x,'─'*track_width,'border')
-            filled = int(track_width*min(1,max(0,position/duration))) if duration>0 else 0
+            timing = elapsed+' / '+total
+            put(timing_y,left+max(0,(usable-cells(timing))//2),crop(timing,usable),'muted')
+            put(progress_y,left,'─'*usable,'border')
+            filled = int(usable*min(1,max(0,position/duration))) if duration>0 else 0
             if filled:
-                put(progress_y,bar_x,'━'*filled,'accent')
+                put(progress_y,left,'━'*filled,'accent')
         footer_y = height - edge - 2
         status = self.settings.error or notice or (source if self.settings.flag('show_source') else '')
         footer = not lyrics_only and self.settings.flag('show_footer') and height >= 12 and (bool(status) or self.settings.flag('show_hints'))
         content_bottom = footer_y - 1 if footer else height - edge - 1
         visual = visual or ()
-        visual_room = len(visual) + 2 if visual and height >= 16 and content_bottom-content_top >= len(visual)+4 else 0
+        visual_room = len(visual) + 2 if visual and height >= 16 and content_bottom-content_top >= len(visual)+3 else 0
         visual_bottom = min(content_bottom, height - edge - 1 - int(self.settings.values['visualizer']['bottom_margin']))
         visual_y = visual_bottom - len(visual) + 1
         if visual_room:

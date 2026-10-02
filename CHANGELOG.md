@@ -1,3 +1,9 @@
+## 0.8.5 — Capa maior e controles abaixo da barra
+
+- Restaura a capa maior à esquerda, com a borda fora da imagem.
+- Centraliza controles abaixo da barra de progresso e tempo abaixo dos controles.
+- Libera a largura do cabeçalho para os metadados, sem indicadores duplicados.
+
 ## 0.8.4 — Cabeçalho minimalista
 
 - Cartão reduzido a quatro linhas, capa pequena à esquerda com borda.
