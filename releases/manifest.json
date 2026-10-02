@@ -220,6 +220,19 @@
       "COMMANDS.pt-BR.md"
     ],
     "source_bundle": true,
+    "latest": false
+  },
+  {
+    "tag": "v0.8.4",
+    "commit": "4bde0b04cbaa32e27a9c108ee7e7d33158e23c38",
+    "title": "v0.8.4 — Cabeçalho minimalista",
+    "notes": "releases/notes/v0.8.4.md",
+    "assets": [
+      "ui.ini",
+      "QUICKSTART.pt-BR.md",
+      "COMMANDS.pt-BR.md"
+    ],
+    "source_bundle": true,
     "latest": true
   }
 ]
