@@ -167,6 +167,7 @@ class TerminalUI:
         self.frame_rows = None
         self.hits = {}
         self.controls = {}
+        self.menu_button = set()
         self.cover_rect = None
 
     def color(self, name):
@@ -186,7 +187,7 @@ class TerminalUI:
         return f'\033[{48 if name == "background" else 38};2;{r};{g};{b}m'
 
     def compose(self, artist, title, body, position=0, duration=0,
-                playing=True, source='', anchor=None, size=None, visual=None, notice='', gap=False, help_open=False, album='', player='', queue_text=None):
+                playing=True, source='', anchor=None, size=None, visual=None, notice='', gap=False, help_open=False, album='', player='', queue_text=None, menu=None):
         self.settings.reload()
         body = '\n'.join(safe(row) for row in str(body).split('\n'))
         if anchor is not None:
@@ -197,12 +198,14 @@ class TerminalUI:
         height = max(1, height)
         frame_key = (artist, title, body, int(position), int(duration),
                      int(width * min(1, max(0, position / duration))) if duration > 0 else 0,
-                     playing, source, album, player, queue_text, anchor, width, height, visual, notice, gap, help_open,
+                     playing, source, album, player, queue_text, anchor,
+                     (menu.section,menu.index,menu.revision,menu.editing,menu.buffer,menu.message) if menu else None, width, height, visual, notice, gap, help_open,
                      repr(self.settings.values), self.settings.error)
         if frame_key == self.frame_key:
             return self.frame_rows
         self.hits = {}
         self.controls = {}
+        self.menu_button = set()
         layout = dict(self.settings.values['layout'])
         lyrics_only = layout['view'] == 'lyrics'
         self.cover_rect = None
@@ -265,8 +268,9 @@ class TerminalUI:
         buttons = [(' '*button_padding)+label+(' '*button_padding) for label in labels]
         group_width = sum(cells(button) for button in buttons)+2*button_gap
         centered_x = left+max(0,(usable-group_width)//2)
-        controls_x = centered_x
-        text_width = max(0,left+usable-text_left)
+        inline = self.settings.flag('controls') and left+usable-text_left >= group_width+16
+        controls_x = max(centered_x,text_left+14) if inline else centered_x
+        text_width = max(0,(controls_x-2 if inline else left+usable)-text_left)
         if not lyrics_only and text_width:
             put(header_y, text_left, truncate(title or 'sylrics', text_width), 'accent')
             if card_height >= 3:
@@ -275,7 +279,7 @@ class TerminalUI:
                 put(header_y+2, text_left, truncate(album or player or source, text_width), 'muted')
         progress_y = header_y+card_height
         show_progress = self.settings.flag('show_progress') and height >= 9 and usable >= 13
-        controls_y = progress_y+int(show_progress)
+        controls_y = header_y+1 if inline else progress_y+int(show_progress)
         if not lyrics_only and self.settings.flag('controls') and controls_y < height-edge:
             x = controls_x
             for label, action in zip(buttons, ('previous','play-pause','next')):
@@ -284,18 +288,19 @@ class TerminalUI:
                     if not help_open:
                         self.controls[col, controls_y] = action
                 x += cells(label)+button_gap
-        timing_y = controls_y+int(self.settings.flag('controls'))
-        header_end = timing_y+int(show_progress)
+        timing_y = progress_y if inline else controls_y+int(self.settings.flag('controls'))
+        header_end = progress_y+int(show_progress) if inline else timing_y+int(show_progress)
         content_top = edge if lyrics_only else min(height-edge-1, header_end+1)
         if not lyrics_only and show_progress:
             elapsed = clock(position)
             total = clock(duration) if duration > 0 else '--:--'
             timing = elapsed+' / '+total
-            put(timing_y,left+max(0,(usable-cells(timing))//2),crop(timing,usable),'muted')
             put(progress_y,left,'─'*usable,'border')
             filled = int(usable*min(1,max(0,position/duration))) if duration>0 else 0
             if filled:
                 put(progress_y,left,'━'*filled,'accent')
+            timing=' '+timing+' '
+            put(timing_y,left+max(0,(usable-cells(timing))//2),crop(timing,usable),'text')
         footer_y = height - edge - 2
         status = self.settings.error or notice or (source if self.settings.flag('show_source') else '')
         footer = not lyrics_only and self.settings.flag('show_footer') and height >= 12 and (bool(status) or self.settings.flag('show_hints'))
@@ -320,6 +325,7 @@ class TerminalUI:
                 'Espaço  ·  Reproduzir ou pausar\n'
                 'N / P  ·  Próxima faixa / Faixa anterior\n'
                 'V  ·  Alternar visualizador\n'
+                'M  ·  Abrir configurações\n'
                 'F  ·  Fila local (beta) · J/K selecionar · U/D mover\n'
                 'Enter · Reproduzir seleção da fila\n'
                 'L  ·  Interface completa / Somente letras\n'
@@ -414,6 +420,52 @@ class TerminalUI:
                 put(footer_y, left + usable - len(hint), hint, 'muted')
             else:
                 put(footer_y, left, truncate(status or hint, usable), 'muted')
+        if not lyrics_only and width>=16:
+            menu_y=0 if border else 0
+            menu_x=width-6
+            put(menu_y,menu_x,'[M]','accent')
+            self.menu_button={(menu_x+i,menu_y) for i in range(3)}
+        if menu is not None:
+            self.cover_rect=None
+            self.hits={};self.controls={};self.menu_button=set();menu.hits={}
+            box_w=min(width,76);box_h=min(height,25)
+            bx=(width-box_w)//2;by=(height-box_h)//2
+            for y in range(by,by+box_h):put(y,bx,' '*box_w)
+            if box_w>=4 and box_h>=4:
+                put(by,bx,'╭'+'─'*(box_w-2)+'╮','border')
+                put(by+box_h-1,bx,'╰'+'─'*(box_w-2)+'╯','border')
+                for y in range(by+1,by+box_h-1):
+                    put(y,bx,'│','border');put(y,bx+box_w-1,'│','border')
+            content_x=bx+1 if box_w>=4 else bx
+            inner=max(1,box_w-2)
+            def modal(y,text,style='text',action=None):
+                if by<=y<by+box_h:
+                    put(y,content_x,truncate(text,inner),style)
+                    if action:
+                        for x in range(content_x,content_x+inner):menu.hits[x,y]=action
+            if box_h<9 or box_w<26:
+                modal(by+1,'Configurações · M fecha','accent')
+                modal(by+2,'Amplie a janela para editar.')
+            else:
+                modal(by+1,'Configurações · '+menu.title,'accent')
+                modal(by+2,'    Tab: próxima categoria','muted')
+                put(by+2,content_x,'[‹]','accent')
+                put(by+2,content_x+inner-3,'[›]','accent')
+                for x in range(content_x,content_x+3):menu.hits[x,by+2]=('previous',)
+                for x in range(content_x+inner-3,content_x+inner):menu.hits[x,by+2]=('next',)
+                options=menu.rows();available=max(1,box_h-8)
+                start=max(0,min(menu.index-available//2,len(options)-available))
+                for offset,(label,value) in enumerate(options[start:start+available]):
+                    index=start+offset
+                    prefix='› ' if index==menu.index else '  '
+                    label_width=max(4,inner//2)
+                    row=prefix+truncate(label,label_width-2).ljust(label_width-2)+'  '+value
+                    modal(by+3+offset,row,'accent' if index==menu.index else 'text',('row',index))
+                footer=by+box_h-5
+                modal(footer,'Editar: '+menu.buffer+'▎' if menu.editing else '↑↓ selecionar · ←→ alterar · E editar','accent' if menu.editing else 'muted')
+                modal(footer+1,menu.message or 'Enter confirma edição · R carrega padrões','muted')
+                modal(footer+2,'[S] Salvar alterações','accent',('save',))
+                modal(footer+3,'[M / Esc] Descartar e fechar','muted',('cancel',))
         rows = []
         palette = {name: self.color(name) for name in ('text','muted','accent','border','word','active','background')}
         for row, style_row in zip(grid, styles):

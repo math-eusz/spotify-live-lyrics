@@ -1,14 +1,23 @@
 """Buffered terminal events and timestamp targets for visible lyric words."""
 # Mouse encoding: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Extended-coordinates
 import re
+import time
 
 
 class InputParser:
     def __init__(self):
         self.pending = ''
+        self.escape_at = 0
+
+    def flush(self):
+        if self.pending == '\033' and time.monotonic()-self.escape_at > .05:
+            self.pending = ''
+            return [('key','\033')]
+        return []
 
     def feed(self, text):
         self.pending += text
+        self.escape_at = time.monotonic()
         events = []
         while self.pending:
             if not self.pending.startswith('\033'):
@@ -25,6 +34,9 @@ class InputParser:
                     break
                 sequence = match[0]
                 mouse = re.fullmatch(r'\x1b\[<0;(\d+);(\d+)M', sequence)
+                arrows={'\033[A':'up','\033[B':'down','\033[C':'right','\033[D':'left'}
+                if sequence in arrows:
+                    events.append(('nav',arrows[sequence]))
                 if mouse:
                     events.append(('click', (int(mouse[1])-1, int(mouse[2])-1)))
                 self.pending = self.pending[len(sequence):]

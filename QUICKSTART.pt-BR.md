@@ -36,9 +36,9 @@ Em outras distribuições, use o gerenciador de pacotes correspondente. Estes co
 Se o sylrics estiver aberto, encerre com `q` ou `Ctrl+C`. Depois:
 
 ```sh
-curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.5/sylrics-0.8.5.tar.gz
-tar -xzf sylrics-0.8.5.tar.gz
-cd sylrics-0.8.5
+curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.6/sylrics-0.8.6.tar.gz
+tar -xzf sylrics-0.8.6.tar.gz
+cd sylrics-0.8.6
 sh install.sh
 ```
 
@@ -180,6 +180,16 @@ O mini player aparece automaticamente ao reduzir a janela. A capa encolhe junto 
 
 Se o visualizador não recebe áudio, teste `cava` sozinho durante a reprodução. No modo `spectrum`, o sylrics agora mostra uma mensagem de indisponibilidade. Em sistemas com PulseAudio ou compatibilidade pipewire-pulse, experimente `sylrics config set visualizer.input pulse`; restaure a seleção automática com `sylrics config set visualizer.input auto`. Isso depende do suporte da sua compilação do CAVA.
 
-Na v0.8.5, os controles usam apenas símbolos: **│◀** anterior, **▌▌** pausar, **▶** reproduzir e **▶│** próxima. A capa fica à esquerda, dentro de uma moldura arredondada que acompanha o tema. Em janelas extremamente pequenas, a moldura é omitida para preservar a imagem. Os comandos e atalhos continuam iguais.
+Na v0.8.6, os controles usam apenas símbolos: **│◀** anterior, **▌▌** pausar, **▶** reproduzir e **▶│** próxima. A capa fica à esquerda, dentro de uma moldura arredondada que acompanha o tema. Em janelas extremamente pequenas, a moldura é omitida para preservar a imagem. Os comandos e atalhos continuam iguais.
 
-A v0.8.5 restaura a capa maior à esquerda com borda. Os controles ficam centralizados abaixo da barra de progresso, e o tempo logo abaixo dos botões. A capa se adapta quando falta espaço na janela. Não é necessário alterar a configuração.
+A v0.8.6 segue a referência de player compacto: informações à esquerda, controles no centro e tempo integrado à barra inferior. A capa e sua borda continuam disponíveis; em janelas estreitas, os controles se reorganizam. O botão [M] abre as configurações.
+
+## ⚙️ Configurações dentro do player
+
+Pressione **M** ou clique em **[M]** no canto superior para abrir o menu. Ele funciona mesmo sem música tocando e no modo somente letras (pela tecla M).
+
+Use **↑/↓** para selecionar e **←/→** para alterar. **Tab** ou **[ / ]** alternam entre Interface, Reprodução, Letras, Visualizador, Tema e Cores. Também é possível clicar nas setas da categoria e nas opções.
+
+**E** edita um valor diretamente (como uma cor `#RRGGBB`, nome de player ou fonte); Enter confirma a edição. **S** ou o botão Salvar grava todas as alterações com backup. **Esc/M** descarta e fecha; durante edição, Esc cancela somente a entrada de texto. **R** carrega os padrões no menu, que só são gravados depois de Salvar.
+
+As alterações válidas são pré-visualizadas durante a sessão. Valores inválidos não são aplicados nem gravados. No menu, as teclas e cliques não acionam a música por trás. A fonte e seu tamanho continuam exigindo uma nova janela com `sylrics font`; não alteram o zoom do terminal atual.

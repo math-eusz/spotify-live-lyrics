@@ -19,7 +19,7 @@ class Version072(unittest.TestCase):
             parser=InputParser()
             events=parser.feed(packet[:cut])+parser.feed(packet[cut:])
             self.assertEqual(events,[('click',(54,12))])
-        self.assertEqual(InputParser().feed('\033[A\033[<0;1;1m\033[<64;1;1Mq'),[('key','q')])
+        self.assertEqual(InputParser().feed('\033[A\033[<0;1;1m\033[<64;1;1Mq'),[('nav','up'),('key','q')])
 
     def test_words_use_syllable_onset_and_native_estimates(self):
         lines,_=timeline({'Type':'Syllable','Content':[{'Type':'Vocal','Lead':{'Syllables':[

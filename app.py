@@ -1,4 +1,4 @@
-"""Unified native/automatic/Spicy player for sylrics 0.8.5."""
+"""Unified native/automatic/Spicy player for sylrics 0.8.6."""
 import os
 import select
 import shutil
@@ -46,7 +46,7 @@ class Keyboard:
     def read(self):
         if self.saved and select.select([sys.stdin],[],[],0)[0]:
             return self.parser.feed(os.read(sys.stdin.fileno(),4096).decode(errors='ignore'))
-        return []
+        return self.parser.flush()
 
     def capture_mouse(self, enabled):
         enabled = bool(enabled and self.saved)
@@ -81,6 +81,8 @@ def run(path,source=None,demo=False,local_files=None):
         print('playerctl não encontrado. No Arch/CachyOS: sudo pacman -S playerctl')
         return 1
     ui=TerminalUI(settings)
+    from settings_menu import SettingsMenu
+    menu=SettingsMenu()
     loader=Lyrics() if not demo else None
     native=bridge=None
     if local_files:
@@ -131,8 +133,35 @@ def run(path,source=None,demo=False,local_files=None):
                     elif mode=='native' and bridge:
                         bridge.close()
                         bridge=None
-                keyboard.capture_mouse((settings.flag('click_seek') or settings.flag('controls')) and not demo)
+                keyboard.capture_mouse(True)
                 events=keyboard.read()
+                filtered=[]
+                for event in events:
+                    kind,value=event
+                    if menu.open:
+                        # Ignore coordinates from the previous terminal size.
+                        if kind=='click' and displayed_size != shutil.get_terminal_size((100,28)):
+                            continue
+                        result=menu.handle(event,path)
+                        if result=='saved':
+                            settings.next_check=0;settings.signature=None;settings.reload()
+                            session.clear();signature=settings.signature;source=None
+                            notice='Configurações salvas · backup criado';notice_until=tick+3
+                        elif result=='cancelled':
+                            settings.values=menu.original
+                        elif menu.open:
+                            preview=menu.preview()
+                            if preview is not None:settings.values=preview
+                        continue
+                    if (kind=='key' and value=='m') or (kind=='click' and value in ui.menu_button and displayed_size==shutil.get_terminal_size((100,28))):
+                        menu.begin(settings.values);help_open=False;queue_open=False
+                        continue
+                    filtered.append(event)
+                events=filtered
+                if menu.open:
+                    preview=menu.preview()
+                    if preview is not None:settings.values=preview
+                playback=settings.values['playback']
                 keys=''.join(value for kind,value in events if kind=='key')
                 for kind,value in events:
                     if '0' in keys or kind != 'click' or help_open:
@@ -230,7 +259,7 @@ def run(path,source=None,demo=False,local_files=None):
                     for (section,option),value in session.items():
                         settings.values[section][option]=value
                 if demo:
-                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.8.5',duration=30,
+                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.8.6',duration=30,
                               position=(tick-started)%30,measured_at=tick,playing=True)
                     lines,label=demo_lines,'Demonstração'
                 else:
@@ -267,7 +296,7 @@ def run(path,source=None,demo=False,local_files=None):
                     metadata=native_display if same_track(native_display,data) else data
                     artwork=covers.get(metadata.get('art_url','')) if supported() and settings.flag('cover') and settings.values['layout']['view']=='full' else None
                     ui.draw(data['artist'],data['title'],body,position,data.get('duration',0),data['playing'],
-                            label,anchor,album=metadata.get('album',''),player=metadata.get('player',''),cover_png=artwork,queue_text=queue_text,visual=bars,gap=gap,help_open=help_open,notice=notice if tick<notice_until else '')
+                            label,anchor,album=metadata.get('album',''),player=metadata.get('player',''),cover_png=artwork,queue_text=queue_text,visual=bars,gap=gap,help_open=help_open,menu=menu if menu.open else None,notice=notice if tick<notice_until else '')
                 else:
                     displayed=None
                     displayed_rows=[]
@@ -275,8 +304,8 @@ def run(path,source=None,demo=False,local_files=None):
                         bridge.error or 'Abra a letra no Spicy Lyrics para conectar.')
                     if local_files:
                         message=native.error or 'Carregando áudio local…'
-                    ui.draw('','sylrics · 0.8.5',message,playing=False,
-                            notice='sylrics doctor · Diagnóstico',source=mode,help_open=help_open)
+                    ui.draw('','sylrics · 0.8.6',message,playing=False,
+                            notice='sylrics doctor · Diagnóstico',source=mode,help_open=help_open,menu=menu if menu.open else None)
                 displayed_size=ui.last_size
                 fps=int(playback['fps'] if data and data['playing'] else playback['idle_fps'])
                 time.sleep(max(0,1/fps-(time.monotonic()-tick)))

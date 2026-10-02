@@ -1,3 +1,10 @@
+## 0.8.6 — Menu de configurações interativo
+
+- Menu modal por M ou botão [M], categorias, mouse e navegação por setas.
+- Prévia validada, edição de valores, salvar com backup, descartar e restaurar padrões.
+- Entrada do menu isolada dos controles de reprodução; funciona sem player conectado.
+- Cabeçalho com controles centralizados e tempo integrado à barra conforme referência.
+
 ## 0.8.5 — Capa maior e controles abaixo da barra
 
 - Restaura a capa maior à esquerda, com a borda fora da imagem.

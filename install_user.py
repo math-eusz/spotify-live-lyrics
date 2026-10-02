@@ -5,7 +5,7 @@ from pathlib import Path
 import shutil
 import sys
 
-RUNTIME=('local_player.py','covers.py','interaction.py','lrc_store.py','app.py','cli.py','lyrics.py','spicy_bridge.py','terminal_ui.py','preferences.py',
+RUNTIME=('settings_menu.py','local_player.py','covers.py','interaction.py','lrc_store.py','app.py','cli.py','lyrics.py','spicy_bridge.py','terminal_ui.py','preferences.py',
          'paging.py','sources.py','visualizer.py','bridge_runtime.py','install_bridge.py',
          'slyrics-bridge.js','ui.ini')
 
@@ -15,7 +15,7 @@ def install(root=None):
     home=Path.home()
     target=home/'.local/share/spotify-live-lyrics'
     timestamp=datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')
-    backup=target/'backup'/('before-0.8.5-'+timestamp)
+    backup=target/'backup'/('before-0.8.6-'+timestamp)
     # Validate all files before touching the installed version.
     payload={name:(root/name).read_bytes() for name in RUNTIME}
     for name,content in payload.items():
@@ -65,7 +65,7 @@ def install(root=None):
     if completion.exists():
         shutil.copy2(completion,backup/'sylrics-completion.fish')
     completion.write_bytes(completion_source)
-    print('sylrics 0.8.5 instalado. Backup: '+str(backup))
+    print('sylrics 0.8.6 instalado. Backup: '+str(backup))
     print('Configuração: '+str(config))
     print('Abra um novo terminal e execute: sylrics')
     if str(binaries) not in os.environ.get('PATH','').split(os.pathsep):
