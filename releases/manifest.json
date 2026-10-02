@@ -233,6 +233,19 @@
       "COMMANDS.pt-BR.md"
     ],
     "source_bundle": true,
+    "latest": false
+  },
+  {
+    "tag": "v0.8.5",
+    "commit": "07a66e791cc638db840c46db698c3a720d919b4b",
+    "title": "v0.8.5 — Capa maior e controles abaixo da barra",
+    "notes": "releases/notes/v0.8.5.md",
+    "assets": [
+      "ui.ini",
+      "QUICKSTART.pt-BR.md",
+      "COMMANDS.pt-BR.md"
+    ],
+    "source_bundle": true,
     "latest": true
   }
 ]
