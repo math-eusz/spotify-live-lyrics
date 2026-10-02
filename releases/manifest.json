@@ -246,6 +246,19 @@
       "COMMANDS.pt-BR.md"
     ],
     "source_bundle": true,
+    "latest": false
+  },
+  {
+    "tag": "v0.8.6",
+    "commit": "d745af60fb15e9b4dde11a19095cf9708815fc41",
+    "title": "v0.8.6 — Configurações dentro do player",
+    "notes": "releases/notes/v0.8.6.md",
+    "assets": [
+      "ui.ini",
+      "QUICKSTART.pt-BR.md",
+      "COMMANDS.pt-BR.md"
+    ],
+    "source_bundle": true,
     "latest": true
   }
 ]
