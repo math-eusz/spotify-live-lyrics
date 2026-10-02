@@ -207,6 +207,19 @@
       "COMMANDS.pt-BR.md"
     ],
     "source_bundle": true,
+    "latest": false
+  },
+  {
+    "tag": "v0.8.3",
+    "commit": "8a33c41cac0ffa115a692c057c7abe26cc953559",
+    "title": "v0.8.3 — Controles por símbolos e capa com moldura",
+    "notes": "releases/notes/v0.8.3.md",
+    "assets": [
+      "ui.ini",
+      "QUICKSTART.pt-BR.md",
+      "COMMANDS.pt-BR.md"
+    ],
+    "source_bundle": true,
     "latest": true
   }
 ]
