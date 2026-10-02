@@ -1,3 +1,9 @@
+## 0.8.4 — Cabeçalho minimalista
+
+- Cartão reduzido a quatro linhas, capa pequena à esquerda com borda.
+- Controles ao lado dos metadados e tempo abaixo, com barra fina na base.
+- Mais espaço para letras; disposição empilhada somente em janelas estreitas.
+
 ## 0.8.3 — Controles por símbolos e capa com moldura
 
 - Botões de reprodução somente com símbolos, centralizados, com área de clique ampliada.

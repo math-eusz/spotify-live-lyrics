@@ -242,9 +242,7 @@ class TerminalUI:
                 put(y, 0, '│', 'border')
                 put(y, width - 1, '│', 'border')
         header_y = edge + (1 if height >= 12 else 0)
-        state = '▶' if playing else '▌▌'
-        compact = usable < 60 or height < 24
-        card_height = min(8 if not compact else 6, max(1, height-edge-header_y-5))
+        card_height = min(4, max(1, height-edge-header_y-5))
         text_left = left
         if not lyrics_only and self.settings.flag('cover'):
             cover_height = min(card_height, max(1, usable // 3))
@@ -261,44 +259,49 @@ class TerminalUI:
             image_x,image_y,image_w,image_h = self.cover_rect
             put(image_y+image_h//2, image_x+max(0,(image_w-1)//2), '♫', 'accent')
             text_left += cover_width + 2
-        text_width = max(0, left + usable - text_left)
+        labels = ['│◀', '▌▌' if playing else '▶ ', '▶│']
+        button_padding = 1 if usable >= 14 else 0
+        button_gap = 2 if usable >= 20 else 1
+        buttons = [(' '*button_padding)+label+(' '*button_padding) for label in labels]
+        group_width = sum(cells(button) for button in buttons)+2*button_gap
+        centered_x = left+max(0,(usable-group_width)//2)
+        inline = (self.settings.flag('controls') and card_height >= 3
+                  and left+usable-text_left >= group_width+16)
+        controls_x = max(centered_x,text_left+14) if inline else centered_x
+        text_width = max(0,(controls_x-2 if inline else left+usable)-text_left)
         if not lyrics_only and text_width:
-            state_space = cells(state)+3 if text_width >= 65 else 0
-            put(header_y, text_left, truncate(title or 'sylrics', text_width-state_space), 'accent')
-            if state_space:
-                put(header_y, left+usable-cells(state), state, 'accent')
+            put(header_y, text_left, truncate(title or 'sylrics', text_width), 'accent')
             if card_height >= 3:
                 put(header_y+1, text_left, truncate(artist, text_width))
             if card_height >= 4:
-                put(header_y+2, text_left, truncate(album or player or source, text_width), 'text')
-        controls_y = header_y + card_height
+                put(header_y+2, text_left, truncate(album or player or source, text_width), 'muted')
+        controls_y = header_y+1 if inline else header_y+card_height
         if not lyrics_only and self.settings.flag('controls') and controls_y < height-edge:
-            # Text-presentation symbols, without emoji selectors or font-specific icons.
-            labels = ['│◀', '▌▌' if playing else '▶', '▶│']
-            padding = 2 if usable >= 25 else 1 if usable >= 11 else 0
-            gap_width = 3 if usable >= 25 else 1
-            buttons = [(' '*padding)+label+(' '*padding) for label in labels]
-            group_width = sum(cells(button) for button in buttons)+2*gap_width
-            x = left + max(0, (usable-group_width)//2)
+            x = controls_x
             for label, action in zip(buttons, ('previous','play-pause','next')):
                 put(controls_y, x, crop(label, max(0,left+usable-x)), 'accent')
                 for col in range(x, min(x+cells(label),left+usable)):
                     if not help_open:
                         self.controls[col, controls_y] = action
-                x += cells(label)+gap_width
-        progress_y = controls_y + int(self.settings.flag('controls'))
+                x += cells(label)+button_gap
+        progress_y = header_y+card_height+(int(self.settings.flag('controls')) if not inline else 0)
         content_top = edge if lyrics_only else min(height-edge-1, progress_y+2)
         if not lyrics_only and self.settings.flag('show_progress') and height >= 9 and usable >= 13:
             elapsed = clock(position)
             total = clock(duration) if duration > 0 else '--:--'
-            track_width = max(1, usable - len(elapsed) - len(total) - 4)
-            put(progress_y, left, elapsed, 'muted')
-            bar_x = left + len(elapsed) + 2
-            put(progress_y, bar_x, '─' * track_width, 'border')
-            filled = int(track_width * min(1, max(0, position / duration))) if duration > 0 else 0
+            if inline:
+                timing = elapsed+' / '+total
+                put(controls_y+1,controls_x+max(0,(group_width-cells(timing))//2),crop(timing,group_width),'muted')
+                bar_x,track_width = left,usable
+            else:
+                track_width = max(1, usable-len(elapsed)-len(total)-4)
+                put(progress_y,left,elapsed,'muted')
+                bar_x = left+len(elapsed)+2
+                put(progress_y,left+usable-len(total),total,'muted')
+            put(progress_y,bar_x,'─'*track_width,'border')
+            filled = int(track_width*min(1,max(0,position/duration))) if duration>0 else 0
             if filled:
-                put(progress_y, bar_x, '━' * filled, 'accent')
-            put(progress_y, left + usable - len(total), total, 'muted')
+                put(progress_y,bar_x,'━'*filled,'accent')
         footer_y = height - edge - 2
         status = self.settings.error or notice or (source if self.settings.flag('show_source') else '')
         footer = not lyrics_only and self.settings.flag('show_footer') and height >= 12 and (bool(status) or self.settings.flag('show_hints'))
