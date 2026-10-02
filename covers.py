@@ -29,7 +29,7 @@ def load_cover(url):
         with path.open('rb') as stream:
             raw = stream.read(MAX_BYTES + 1)
     elif parsed.scheme == 'https':
-        request = urllib.request.Request(url, headers={'User-Agent': 'sylrics/0.8.2'})
+        request = urllib.request.Request(url, headers={'User-Agent': 'sylrics/0.8.3'})
         with urllib.request.urlopen(request, timeout=4) as stream:
             if urllib.parse.urlsplit(stream.geturl()).scheme != 'https':
                 return None

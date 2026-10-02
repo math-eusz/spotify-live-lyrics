@@ -1,4 +1,4 @@
-"""Unified native/automatic/Spicy player for sylrics 0.8.2."""
+"""Unified native/automatic/Spicy player for sylrics 0.8.3."""
 import os
 import select
 import shutil
@@ -230,7 +230,7 @@ def run(path,source=None,demo=False,local_files=None):
                     for (section,option),value in session.items():
                         settings.values[section][option]=value
                 if demo:
-                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.8.2',duration=30,
+                    data=dict(uri='demo',artist='sylrics',title='Prévia interativa · 0.8.3',duration=30,
                               position=(tick-started)%30,measured_at=tick,playing=True)
                     lines,label=demo_lines,'Demonstração'
                 else:
@@ -275,7 +275,7 @@ def run(path,source=None,demo=False,local_files=None):
                         bridge.error or 'Abra a letra no Spicy Lyrics para conectar.')
                     if local_files:
                         message=native.error or 'Carregando áudio local…'
-                    ui.draw('','sylrics · 0.8.2',message,playing=False,
+                    ui.draw('','sylrics · 0.8.3',message,playing=False,
                             notice='sylrics doctor · Diagnóstico',source=mode,help_open=help_open)
                 displayed_size=ui.last_size
                 fps=int(playback['fps'] if data and data['playing'] else playback['idle_fps'])

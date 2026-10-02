@@ -6,7 +6,7 @@
 
 Letras sincronizadas, visualizador de áudio e uma interface que você pode deixar do seu jeito.
 
-**🐧 Linux · 🐍 Python 3.10+ · 📦 v0.8.2 · 📜 MIT**
+**🐧 Linux · 🐍 Python 3.10+ · 📦 v0.8.3 · 📜 MIT**
 
 [🚀 Instalar](#-instalação) · [🎛️ Comandos](COMMANDS.pt-BR.md) · [📖 Primeiros passos](QUICKSTART.pt-BR.md) · [📦 Versões](https://github.com/math-eusz/spotify-live-lyrics/releases)
 
@@ -52,9 +52,9 @@ sudo pacman -S --needed cava python-pillow
 Baixe e instale a versão atual:
 
 ```sh
-curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.2/sylrics-0.8.2.tar.gz
-tar -xzf sylrics-0.8.2.tar.gz
-cd sylrics-0.8.2
+curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.3/sylrics-0.8.3.tar.gz
+tar -xzf sylrics-0.8.3.tar.gz
+cd sylrics-0.8.3
 sh install.sh
 ```
 
@@ -204,7 +204,7 @@ sylrics config restore
 
 ## 📦 Histórico e colaboração
 
-A versão **0.8.2** adiciona mini player responsivo, capa proporcional à janela, controles clicáveis e reprodução local com fila editável (beta). Também melhora o contraste do tema dinâmico e a recuperação do CAVA. O instalador faz backup dos arquivos substituídos e da configuração; suas preferências são preservadas.
+A versão **0.8.3** substitui os rótulos de reprodução por símbolos │◀ / ▌▌ / ▶ / ▶│ e adiciona uma moldura arredondada à capa, sempre à esquerda. O mini player continua responsivo; a área de clique inclui o espaço ao redor de cada símbolo. O instalador faz backup dos arquivos substituídos e da configuração; suas preferências são preservadas.
 
 Veja o [histórico de alterações em português](CHANGELOG.md) ou baixe uma [versão publicada](https://github.com/math-eusz/spotify-live-lyrics/releases).
 
@@ -247,3 +247,5 @@ sylrics cover on          # Mostrar a capa, inclusive na janela compacta
 sylrics view lyrics       # Mostrar somente letras
 sylrics view full         # Restaurar a interface completa
 ```
+
+Na v0.8.3, os controles usam apenas símbolos: **│◀** anterior, **▌▌** pausar, **▶** reproduzir e **▶│** próxima. A capa fica à esquerda, dentro de uma moldura arredondada que acompanha o tema. Em janelas extremamente pequenas, a moldura é omitida para preservar a imagem. Os comandos e atalhos continuam iguais.

@@ -1,4 +1,4 @@
-# 🎛️ Comandos do sylrics · v0.8.2
+# 🎛️ Comandos do sylrics · v0.8.3
 
 [← Página inicial](README.md) · [🚀 Instalação](QUICKSTART.pt-BR.md)
 
@@ -155,7 +155,7 @@ Os nomes dos comandos e valores (`true`, `false`, `rolling` etc.) permanecem com
 
 Os perfis de desempenho preservam aparência, fonte de letras e sincronização. Os limites de FPS são metas, dependentes do terminal e da máquina. Tempos reais por sílaba têm prioridade também no modo `words-beta`.
 
-## 🎧 Mini player e reprodução local · v0.8.2
+## 🎧 Mini player e reprodução local · v0.8.3
 
 | Comando | Função |
 |---|---|
@@ -174,3 +174,5 @@ Os perfis de desempenho preservam aparência, fonte de letras e sincronização.
 Os três últimos atalhos atuam apenas com a fila aberta. Espaço, N/P e os botões continuam controlando a reprodução. A fila é temporária, até 1000 arquivos, e não altera os arquivos no disco. Comandos externos `sylrics control` continuam destinados aos players MPRIS; no modo local, use os controles da própria janela. Não há edição da fila do Spotify nesta versão.
 
 O layout compacto é automático, sem um comando adicional. A capa acompanha o tamanho da janela; `cover off` e `view lyrics` continuam sendo as opções para ocultá-la. Em dimensões extremas, texto e controles são recortados para caber.
+
+Na v0.8.3, os controles usam apenas símbolos: **│◀** anterior, **▌▌** pausar, **▶** reproduzir e **▶│** próxima. A capa fica à esquerda, dentro de uma moldura arredondada que acompanha o tema. Em janelas extremamente pequenas, a moldura é omitida para preservar a imagem. Os comandos e atalhos continuam iguais.

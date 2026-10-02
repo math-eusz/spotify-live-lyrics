@@ -242,17 +242,24 @@ class TerminalUI:
                 put(y, 0, '│', 'border')
                 put(y, width - 1, '│', 'border')
         header_y = edge + (1 if height >= 12 else 0)
-        state = ('▶ Em reprodução' if playing else 'Ⅱ Pausado') if self.settings.flag('icons') else ('Em reprodução' if playing else 'Pausado')
+        state = '▶' if playing else '▌▌'
         compact = usable < 60 or height < 24
-        card_height = min(6 if not compact else 4, max(1, height-edge-header_y-5))
+        card_height = min(8 if not compact else 6, max(1, height-edge-header_y-5))
         text_left = left
         if not lyrics_only and self.settings.flag('cover'):
             cover_height = min(card_height, max(1, usable // 3))
-            cover_width = min(cover_height * 2, usable)
-            self.cover_rect = (left, header_y, cover_width, cover_height)
-            for y in range(header_y, header_y+cover_height):
-                put(y, left, '░' * cover_width, 'border')
-            put(header_y+cover_height//2, left+max(0, (cover_width-1)//2), '♫', 'accent')
+            framed = cover_height >= 3 and usable >= 4
+            cover_width = min(cover_height * 2 - (2 if framed else 0), usable)
+            if framed:
+                put(header_y, left, '╭' + '─' * (cover_width-2) + '╮', 'border')
+                for y in range(header_y+1, header_y+cover_height-1):
+                    put(y, left, '│' + ' ' * (cover_width-2) + '│', 'border')
+                put(header_y+cover_height-1, left, '╰' + '─' * (cover_width-2) + '╯', 'border')
+                self.cover_rect = (left+1, header_y+1, cover_width-2, cover_height-2)
+            else:
+                self.cover_rect = (left, header_y, cover_width, cover_height)
+            image_x,image_y,image_w,image_h = self.cover_rect
+            put(image_y+image_h//2, image_x+max(0,(image_w-1)//2), '♫', 'accent')
             text_left += cover_width + 2
         text_width = max(0, left + usable - text_left)
         if not lyrics_only and text_width:
@@ -266,18 +273,19 @@ class TerminalUI:
                 put(header_y+2, text_left, truncate(album or player or source, text_width), 'text')
         controls_y = header_y + card_height
         if not lyrics_only and self.settings.flag('controls') and controls_y < height-edge:
-            labels = ['[ Anterior ]', '[ Pausar ]' if playing else '[ Reproduzir ]', '[ Próxima ]']
-            if cells(' '.join(labels)) > usable:
-                labels = ['[|<]', '[II]' if playing else '[>]', '[>|]']
-            if cells(' '.join(labels)) > usable:
-                labels = ['<', 'Ⅱ' if playing else '▶', '>']
-            x = left + max(0, (usable-cells(' '.join(labels)))//2)
-            for label, action in zip(labels, ('previous','play-pause','next')):
+            # Text-presentation symbols, without emoji selectors or font-specific icons.
+            labels = ['│◀', '▌▌' if playing else '▶', '▶│']
+            padding = 2 if usable >= 25 else 1 if usable >= 11 else 0
+            gap_width = 3 if usable >= 25 else 1
+            buttons = [(' '*padding)+label+(' '*padding) for label in labels]
+            group_width = sum(cells(button) for button in buttons)+2*gap_width
+            x = left + max(0, (usable-group_width)//2)
+            for label, action in zip(buttons, ('previous','play-pause','next')):
                 put(controls_y, x, crop(label, max(0,left+usable-x)), 'accent')
                 for col in range(x, min(x+cells(label),left+usable)):
                     if not help_open:
                         self.controls[col, controls_y] = action
-                x += cells(label)+1
+                x += cells(label)+gap_width
         progress_y = controls_y + int(self.settings.flag('controls'))
         content_top = edge if lyrics_only else min(height-edge-1, progress_y+2)
         if not lyrics_only and self.settings.flag('show_progress') and height >= 9 and usable >= 13:

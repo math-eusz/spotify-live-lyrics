@@ -93,13 +93,16 @@ class Revision082(unittest.TestCase):
                 deadline=time.monotonic()+5;points={}
                 while time.monotonic()<deadline and len(points)<3:
                     if select.select([master],[],[],.1)[0]:output+=os.read(master,65536)
-                    rows=re.split(r'\x1b\[(\d+);1H',output.decode(errors='replace'))
+                    screen=output.decode(errors='replace')
+                    if 'Fixture' not in screen:
+                        continue
+                    rows=re.split(r'\x1b\[(\d+);1H',screen)
                     for i in range(1,len(rows)-1,2):
                         plain=re.sub(r'\x1b\[[0-9;?]*[a-zA-Z]','',rows[i+1])
-                        for name in ('Anterior','Pausar','Próxima'):
+                        for name in ('│◀','▌▌','▶│'):
                             if name in plain:points[name]=(plain.index(name)+1,int(rows[i]))
                 self.assertEqual(len(points),3)
-                for name,expected in [('Anterior','previous'),('Pausar','play-pause'),('Próxima','next')]:
+                for name,expected in [('│◀','previous'),('▌▌','play-pause'),('▶│','next')]:
                     x,y=points[name];os.write(master,f'\033[<0;{x};{y}M'.encode())
                     deadline=time.monotonic()+2
                     while time.monotonic()<deadline and (not log.exists() or expected not in log.read_text()):

@@ -1,3 +1,9 @@
+## 0.8.3 — Controles por símbolos e capa com moldura
+
+- Botões de reprodução somente com símbolos, centralizados, com área de clique ampliada.
+- Capa à esquerda com moldura arredondada, sem sobreposição da imagem sobre a borda.
+- Adaptação ao mini player e preferências preservadas.
+
 ## 0.8.2 — Mini player e reprodução local beta
 
 - Capa responsiva e persistente no modo completo, com controles clicáveis e composição compacta.

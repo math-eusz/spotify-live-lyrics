@@ -36,9 +36,9 @@ Em outras distribuições, use o gerenciador de pacotes correspondente. Estes co
 Se o sylrics estiver aberto, encerre com `q` ou `Ctrl+C`. Depois:
 
 ```sh
-curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.2/sylrics-0.8.2.tar.gz
-tar -xzf sylrics-0.8.2.tar.gz
-cd sylrics-0.8.2
+curl -fLO https://github.com/math-eusz/spotify-live-lyrics/releases/download/v0.8.3/sylrics-0.8.3.tar.gz
+tar -xzf sylrics-0.8.3.tar.gz
+cd sylrics-0.8.3
 sh install.sh
 ```
 
@@ -179,3 +179,5 @@ Use `F` para ver a fila, `J`/`K` para selecionar, `U`/`D` para reorganizar e `En
 O mini player aparece automaticamente ao reduzir a janela. A capa encolhe junto e os botões ficam compactos. `sylrics controls off` oculta os botões; `sylrics controls on` restaura. As capas continuam dependendo de uma imagem disponível, Kitty sem tmux e Pillow.
 
 Se o visualizador não recebe áudio, teste `cava` sozinho durante a reprodução. No modo `spectrum`, o sylrics agora mostra uma mensagem de indisponibilidade. Em sistemas com PulseAudio ou compatibilidade pipewire-pulse, experimente `sylrics config set visualizer.input pulse`; restaure a seleção automática com `sylrics config set visualizer.input auto`. Isso depende do suporte da sua compilação do CAVA.
+
+Na v0.8.3, os controles usam apenas símbolos: **│◀** anterior, **▌▌** pausar, **▶** reproduzir e **▶│** próxima. A capa fica à esquerda, dentro de uma moldura arredondada que acompanha o tema. Em janelas extremamente pequenas, a moldura é omitida para preservar a imagem. Os comandos e atalhos continuam iguais.
